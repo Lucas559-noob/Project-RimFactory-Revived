@@ -9,7 +9,7 @@ Mesmo que o destino de saída esteja na zona de armazenamento, o produto acabado
   
   <PRF.AutoMachineTool.StatWorking>Trabalhando. [{0} / {1} ({2} %)]</PRF.AutoMachineTool.StatWorking>
   <PRF.AutoMachineTool.StatWorkingNotParam>Trabalhando.</PRF.AutoMachineTool.StatWorkingNotParam>
-  <PRF.AutoMachineTool.StatReady>pronto.</PRF.AutoMachineTool.StatReady>
+  <PRF.AutoMachineTool.StatReady>Pronto.</PRF.AutoMachineTool.StatReady>
   <PRF.AutoMachineTool.StatPlacing>Colocação. [colocação pendente {0}]</PRF.AutoMachineTool.StatPlacing>
   
   <PRF.AutoMachineTool.Priority>prioridade</PRF.AutoMachineTool.Priority>
