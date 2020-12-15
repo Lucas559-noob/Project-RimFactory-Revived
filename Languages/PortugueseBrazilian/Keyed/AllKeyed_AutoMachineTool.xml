@@ -25,7 +25,7 @@ Mesmo que o destino de saída esteja na zona de armazenamento, o produto acabado
   <PRF.AutoMachineTool.OutputDirection.NW>Noroeste</PRF.AutoMachineTool.OutputDirection.NW>
   
   <!-- PowerTab -->
-  <PRF.AutoMachineTool.SupplyPower.TabName>Poder</PRF.AutoMachineTool.SupplyPower.TabName>
+  <PRF.AutoMachineTool.SupplyPower.TabName>Energia</PRF.AutoMachineTool.SupplyPower.TabName>
   <PRF.AutoMachineTool.SupplyPower.Description>Defina o uso de energia. Mais potência = velocidade de trabalho mais rápida</PRF.AutoMachineTool.SupplyPower.Description>
   <PRF.AutoMachineTool.SupplyPower.DescriptionForRange>Defina o uso de energia. Mais potência = Maior alcance</PRF.AutoMachineTool.SupplyPower.DescriptionForRange>
   <PRF.AutoMachineTool.SupplyPower.ValueLabelForSpeed>Aumentar a potência (velocidade)</PRF.AutoMachineTool.SupplyPower.ValueLabelForSpeed>
