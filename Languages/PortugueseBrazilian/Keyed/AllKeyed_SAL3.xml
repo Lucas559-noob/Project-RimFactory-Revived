@@ -2,7 +2,7 @@
 <LanguageData>
   <SALMessage_NoDataDiskFound>Coloque primeiro um disco de dados próximo.</SALMessage_NoDataDiskFound>
   <SearchingForIngredients>Procurando ingredientes ...</SearchingForIngredients>
-  <SAL3_BillReport>Tarrefa atual: {0} ({1} trabalho restante)</SAL3_BillReport>
+  <SAL3_BillReport>Tarefa atual: {0} ({1} trabalho restante)</SAL3_BillReport>
   <SAL3_Products>Produtos esperando para serem colocados: {0}</SAL3_Products>
   <SALMessage_NoRecipes>Nenhuma receita encontrada.</SALMessage_NoRecipes>
   <SALDataStartEncoding>Importar receita ...</SALDataStartEncoding>
