@@ -137,7 +137,7 @@
       <MarketValue>1575</MarketValue>
       <Cleanliness>5</Cleanliness>
     </statBases>
-    <description>An improved assortment of food processing modules which can peel, mince, chop, mix, cook, steam, grill, and bake ingredients into more or less delicious meals and other edible products.\n\nNever ruin a meal again with your one-stop solution to satisfy all your colony's sustenance needs. Just look at it go! \n\n 1.5x speed \n 5 cleanliness \n cook level 12</description>
+    <description>An improved assortment of food processing modules which can peel, mince, chop, mix, cook, steam, grill, and bake ingredients into more or less delicious meals and other edible products.\n\nNever ruin a meal again with your one-stop solution to satisfy all your colony's sustenance needs. Just look at it go! \n\n Copies Electric stove recipes\n 1.5x speed \n 5 cleanliness \n cook level 12</description>
     <costList>
       <PRF_RoboticArm>1</PRF_RoboticArm>
       <PRF_MachineFrame_II>1</PRF_MachineFrame_II>
@@ -219,18 +219,14 @@
         <glowColor>(115,198,206,0)</glowColor>
       </li>
       <li Class="ProjectRimFactory.Common.CompProperties_PowerWorkSetting">
-        <!-- speed settings -->
-        <speedSetting>true</speedSetting>
-        <minPowerForSpeed>0</minPowerForSpeed>
-        <minSpeedFactor>1</minSpeedFactor>
-        <maxPowerForSpeed>3000</maxPowerForSpeed>
-        <maxSpeedFactor>3</maxSpeedFactor>
-        <!-- range settings -->
-        <rangeSetting>true</rangeSetting>
-        <minPowerForRange>0</minPowerForRange>
-        <minRange>1</minRange>
-        <maxPowerForRange>1500</maxPowerForRange>
-        <maxRange>4</maxRange>
+        <!-- Speed Settings -->
+<floatrange_SpeedFactor>1~3</floatrange_SpeedFactor>
+<powerPerStepSpeed>1500</powerPerStepSpeed>
+<powerStepFactor>1</powerStepFactor>
+<!-- Range Settings -->
+<floatrange_Range>1~4</floatrange_Range>
+<powerPerStepRange>500</powerPerStepRange>
+
         <allowManualRangeTypeChange>true</allowManualRangeTypeChange>
         <rangeType>ProjectRimFactory.Common.RectRange</rangeType>
         <!-- range color settings
@@ -325,7 +321,8 @@
         <heatPerSecond>2</heatPerSecond>
       </li>
     </comps>
-    <!--<recipes></recipes>-->
+    <recipes>
+    </recipes>
     <researchPrerequisites>
       <li>PRF_SelfCooking</li>
     </researchPrerequisites>
@@ -368,7 +365,7 @@
       <drawSize>(1.8,1.8)</drawSize>
     </graphicData>
     <size>(1,1)</size>
-    <altitudeLayer>Building</altitudeLayer>
+    <altitudeLayer>BuildingOnTop</altitudeLayer>
     <fillPercent>1.0</fillPercent>
     <pathCost>60</pathCost>
     <uiIconScale>0.6</uiIconScale>

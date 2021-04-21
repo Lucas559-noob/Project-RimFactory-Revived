@@ -166,7 +166,23 @@ namespace ProjectRimFactory.SAL3.Things.Assemblers {
                     action = () => Find.WindowStack.Add(new FloatMenu(GetDebugOptions().ToList()))
                 };
             }
+            yield return new Command_Action
+            {
+                action = MakeMatchingStockpileZone,
+                hotKey = KeyBindingDefOf.Misc1,
+                defaultDesc = "DesignatorZoneCreateStorageResourcesDesc".Translate(),
+                icon = ContentFinder<Texture2D>.Get("UI/Designators/ZoneCreate_Stockpile"),
+                defaultLabel = "PRF_MakeStockpileZoneLabel".Translate()
+            };
         }
+
+        private void MakeMatchingStockpileZone()
+        {
+            Designator_ZoneAddStockpile_Resources stockpileZone = new Designator_ZoneAddStockpile_Resources();
+            stockpileZone.DesignateMultiCell(IngredientStackCells.Where(c => c != OutputComp.CurrentCell));
+        }
+
+
         public CompOutputAdjustable OutputComp
         {
             get
@@ -195,6 +211,9 @@ namespace ProjectRimFactory.SAL3.Things.Assemblers {
 
         private MapTickManager mapManager;
         protected MapTickManager MapManager => this.mapManager;
+
+        private PRFGameComponent prf_gamecomp = Current.Game.GetComponent<PRFGameComponent>();
+
         public override void SpawnSetup(Map map, bool respawningAfterLoad)
         {
             base.SpawnSetup(map, respawningAfterLoad);
@@ -211,6 +230,7 @@ namespace ProjectRimFactory.SAL3.Things.Assemblers {
             this.compPowerTrader = GetComp<CompPowerTrader>();
             this.compRefuelable  = GetComp<CompRefuelable>();
             this.compFlick       = GetComp<CompFlickable>();
+            this.prf_gamecomp = Current.Game.GetComponent<PRFGameComponent>();
 
             //Assign Pawn's mapIndexOrState to building's mapIndexOrState
             ReflectionUtility.mapIndexOrState.SetValue(buildingPawn, ReflectionUtility.mapIndexOrState.GetValue(this));
@@ -224,7 +244,7 @@ namespace ProjectRimFactory.SAL3.Things.Assemblers {
                 this.MapManager.NextAction(rangePowerSupplyMachine.RefreshPowerStatus);
                 this.MapManager.AfterAction(5, rangePowerSupplyMachine.RefreshPowerStatus);
             }
-            PRFGameComponent.RegisterAssemblerQueue(this);
+            prf_gamecomp.RegisterAssemblerQueue(this);
 
 
 
@@ -513,11 +533,20 @@ namespace ProjectRimFactory.SAL3.Things.Assemblers {
                     label2 = "SAL3_Products".Translate(thingQueue.Count, max_thingQueue_Count);
                 }
                 Vector2 vectorpos = GenMapUI.LabelDrawPosFor(this, 0f);
-                GenMapUI.DrawThingLabel(vectorpos, label, Color.white);
+                
+                //Don't show an Empty Line
+                if (label != "")
+                {
+                    GenMapUI.DrawThingLabel(vectorpos, label, Color.white);
+                }
+                
                 vectorpos.y += Verse.Text.CalcSize(label).y;
 
-
-                GenMapUI.DrawThingLabel(vectorpos, label2, Color.yellow);
+                //Don't show an Empty Line
+                if (label2 != "")
+                {
+                    GenMapUI.DrawThingLabel(vectorpos, label2, Color.yellow);
+                }
 
             }
         }
@@ -540,6 +569,36 @@ namespace ProjectRimFactory.SAL3.Things.Assemblers {
             return thingQueue;
         }
 
+        public override void DeSpawn(DestroyMode mode = DestroyMode.Vanish)
+        {
+            //Spawn Items in Queue on Minify
+            for (int i = thingQueue.Count - 1; i >= 0; i--)
+            {
+                //some of the things contaned are marked as Destroyed for some reason. they should not be Destroyed
+                if (thingQueue[i].Destroyed) thingQueue[i].ForceSetStateToUnspawned();
+
+                PlaceThingUtility.PRFTryPlaceThing(this, thingQueue[i], this.Position, this.Map, true);
+            }
+
+            base.DeSpawn(mode);
+
+            prf_gamecomp.DeRegisterAssemblerQueue(this);
+        }
+
+        public override void Destroy(DestroyMode mode = DestroyMode.Vanish)
+        {
+            //this.Map is null after base.Destroy(mode);
+            //Spawn Items in Queue on Deconstruct or Destruction of Assembler
+            for (int i = thingQueue.Count - 1; i >= 0; i--)
+            {
+                PlaceThingUtility.PRFTryPlaceThing(this, thingQueue[i], this.Position, this.Map, true);
+            }
+
+            base.Destroy(mode);
+
+            prf_gamecomp.DeRegisterAssemblerQueue(this);
+        }
+
         // (Some) Internal variables:
         // Logic
         protected BillReport currentBillReport;
@@ -552,6 +611,7 @@ namespace ProjectRimFactory.SAL3.Things.Assemblers {
 
         protected bool AllowProduction_thingQueue => thingQueue.Count < max_thingQueue_Count;
 
+        Map IAssemblerQueue.Map => this.Map;
 
         [Unsaved]
         private Effecter effecter = null;

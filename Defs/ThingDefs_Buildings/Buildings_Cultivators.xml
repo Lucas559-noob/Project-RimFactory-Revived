@@ -40,9 +40,6 @@
 
     <comps>      <!-- 	A C# class describing what should happen when the thing is interacted with in a specific way. This class might need additional tags to work. -->
       <li Class="CompProperties_Flickable" />
-      <li Class="ProjectRimFactory.Common.CompProperties_CompOutputAdjustable">
-        <SupportDiagonal>true</SupportDiagonal>
-      </li>
     </comps>
   </ThingDef>
 
@@ -63,6 +60,11 @@
     <placeWorkers>
       <li>ProjectRimFactory.CultivatorTools.PlaceWorker_HighlightPlaceableCells</li>
     </placeWorkers>
+    <comps>      <!-- 	A C# class describing what should happen when the thing is interacted with in a specific way. This class might need additional tags to work. -->
+      <li Class="ProjectRimFactory.Common.CompProperties_CompOutputAdjustable">
+        <SupportDiagonal>true</SupportDiagonal>
+      </li>
+    </comps>
   </ThingDef>
 
 
@@ -102,6 +104,7 @@
         <spawnWithFullDrones>true</spawnWithFullDrones>
         <workTypes>
           <li>Growing</li>
+          <li>PlantCutting</li>
         </workTypes>
       </li>
       <li Class="ProjectRimFactory.Common.ModExtension_Skills">
@@ -157,6 +160,7 @@
         <spawnWithFullDrones>true</spawnWithFullDrones>
         <workTypes>
           <li>Growing</li>
+          <li>PlantCutting</li>
           <li>Hauling</li>
         </workTypes>
       </li>
@@ -226,6 +230,7 @@
         <spawnWithFullDrones>true</spawnWithFullDrones>
         <workTypes>
           <li>Growing</li>
+          <li>PlantCutting</li>
           <li>Hauling</li>
         </workTypes>
       </li>
@@ -266,16 +271,17 @@
       <li Class="CompProperties_Power">
         <compClass>CompPowerTrader</compClass>
         <shortCircuitInRain>false</shortCircuitInRain>
-        <basePowerConsumption>0</basePowerConsumption>
+        <basePowerConsumption>750</basePowerConsumption>
       </li>
       <li Class="ProjectRimFactory.Common.CompProperties_PowerWorkSetting">
-        <speedSetting>false</speedSetting>
-        <rangeSetting>true</rangeSetting>
+        <!-- Speed Settings -->
+        <floatrange_SpeedFactor>1~1</floatrange_SpeedFactor>
+        <powerPerStepSpeed>0</powerPerStepSpeed>
+        <powerStepFactor>1</powerStepFactor>
+        <!-- Range Settings -->
+        <floatrange_Range>5~15</floatrange_Range>
+        <powerPerStepRange>150</powerPerStepRange>
         <allowManualRangeTypeChange>true</allowManualRangeTypeChange>
-        <minPowerForRange>750</minPowerForRange>
-        <minRange>5</minRange>
-        <maxPowerForRange>1500</maxPowerForRange>
-        <maxRange>15</maxRange>
         <rangeType>ProjectRimFactory.Common.RectRange</rangeType>
       </li>
     </comps>
@@ -287,6 +293,7 @@
         <spawnWithFullDrones>true</spawnWithFullDrones>
         <workTypes>
           <li>Growing</li>
+          <li>PlantCutting</li>
           <li>Hauling</li>
         </workTypes>
       </li>
@@ -320,7 +327,7 @@
       <MaxHitPoints>350</MaxHitPoints>
       <MarketValue>2995</MarketValue>
     </statBases>
-    <description>This is a hightech Cultivator that houses worker mechanites, that will sow, harvest and maintain a growzone or hydroponics setup. It has a Full spectrum LED sun light build in its sides. it will also output onto a cell for further processing.\n\nBase Stats:\nDrones: none, 1 working cell\nWorkArea: 11x11\nWorktime: fulltime\nSpeed: 50\nSkill lv.: 20</description>
+    <description>This is a hightech Cultivator that houses worker mechanites, that will sow, harvest and maintain a growzone or hydroponics setup. It will also output onto a cell for further processing.\n\nBase Stats:\nDrones: none, 1 working cell\nWorkArea: 11x11\nWorktime: fulltime\nSpeed: 50\nSkill lv.: 20</description>
     <costList>
       <PRF_MachineFrame_I>1</PRF_MachineFrame_I>
       <PRF_RoboticArm>3</PRF_RoboticArm>
@@ -422,7 +429,7 @@
       <MaxHitPoints>500</MaxHitPoints>
       <MarketValue>10646</MarketValue>
     </statBases>
-    <description>This is a hightech XL Cultivator that houses worker mechanites, that will sow, harvest and maintain a growzone or hydroponics setup. It has a Full spectrum LED sun light build in its sides. it will also output onto a cell for further processing.\n\nBase Stats:\nDrones: none, 1 working cell\nWorkArea: 22x22\nWorktime: fulltime\nSpeed: 12 (5x faster)\nSkill lv.: 20</description>
+    <description>This is a hightech XL Cultivator that houses worker mechanites, that will sow, harvest and maintain a growzone or hydroponics setup. It will also output onto a cell for further processing.\n\nBase Stats:\nDrones: none, 1 working cell\nWorkArea: 22x22\nWorktime: fulltime\nSpeed: 12 (5x faster)\nSkill lv.: 20</description>
     <costList>
       <PRF_MachineFrame_I>1</PRF_MachineFrame_I>
       <PRF_RoboticArm>9</PRF_RoboticArm>

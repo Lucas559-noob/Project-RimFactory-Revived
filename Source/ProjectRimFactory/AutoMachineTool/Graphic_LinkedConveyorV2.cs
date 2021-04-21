@@ -17,7 +17,9 @@ namespace ProjectRimFactory.AutoMachineTool {
     [StaticConstructorOnStartup]
     public class Graphic_LinkedConveyorV2 : Verse.Graphic_Linked, IHaveGraphicExtraData {
         // Little yellow arrow that points the direction of conveyor travel:
-        public static Material arrow00; // initialized in the static constructor
+        // HARDCODED DEFAULT:
+        public static Material arrow00; // default arrow, initialized in the static constructor
+        public Material arrow; // used by the graphic
         // Offsets used for placing those arrows:
         public Vector3[] arrowOffsetsByRot4 = {
                     new Vector3(0f, 0.1f, 0f),
@@ -33,10 +35,12 @@ namespace ProjectRimFactory.AutoMachineTool {
 
         public override void Init(GraphicRequest req) {
             // I'm sure "req ... out req" is perfectly safe?
+            // Move all initialization to ExtraInit
             var extraData = GraphicExtraData.Extract(req, out req);
             ExtraInit(req, extraData);
         }
         public virtual void ExtraInit(GraphicRequest req, GraphicExtraData extraData) {
+            arrow = arrow00;
             this.data = req.graphicData;
             this.color = req.color;
             this.colorTwo = req.colorTwo;
@@ -64,6 +68,9 @@ namespace ProjectRimFactory.AutoMachineTool {
                 arrowOffsetsByRot4[0] = extraData.arrowNorthDrawOffset.Value;
             if (extraData.arrowSouthDrawOffset != null)
                 arrowOffsetsByRot4[2] = extraData.arrowSouthDrawOffset.Value;
+            if (extraData.arrowTexPath1 != null) {
+                this.arrow = MaterialPool.MatFrom(extraData.arrowTexPath1);
+            }
         }
 
         public override void Print(SectionLayer layer, Thing thing) {
@@ -86,16 +93,15 @@ namespace ProjectRimFactory.AutoMachineTool {
                 // So....don't print underground belts?
                 return;
             }
-            //TODO: print ourself if it's underground, so it's higher than walls and visible
             base.Print(layer, thing);
             // Print the tiny yellow arrow showing direction:
             Printer_Plane.PrintPlane(layer, thing.TrueCenter()
-                + arrowOffsetsByRot4[thing.Rotation.AsInt], this.drawSize, arrow00,
+                + arrowOffsetsByRot4[thing.Rotation.AsInt], this.drawSize, arrow,
                 thing.Rotation.AsAngle);
         }
 
         public override bool ShouldLinkWith(IntVec3 c, Thing parent) {
-            //TODO: should probably cache this in the conveyor, for speed
+            // maybe we should probably cache this in the conveyor, for speed?
             if (!c.InBounds(parent.Map)) {
                 return false;
             }

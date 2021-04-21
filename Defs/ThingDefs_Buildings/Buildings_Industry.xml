@@ -312,7 +312,7 @@
     <comps>
       <li Class="CompProperties_Power">
         <compClass>CompPowerTrader</compClass>
-        <basePowerConsumption>0</basePowerConsumption>
+        <basePowerConsumption>3000</basePowerConsumption>
       </li>
       <li Class="ProjectRimFactory.Common.CompProperties_CompOutputAdjustable">
         <SupportDiagonal>true</SupportDiagonal>
@@ -322,18 +322,14 @@
         <heatPerSecond>5</heatPerSecond>
       </li>
       <li Class="ProjectRimFactory.Common.CompProperties_PowerWorkSetting">
-        <!-- speed settings -->
-        <speedSetting>true</speedSetting>
-        <minPowerForSpeed>3000</minPowerForSpeed>
-        <minSpeedFactor>1</minSpeedFactor>
-        <maxPowerForSpeed>10000</maxPowerForSpeed>
-        <maxSpeedFactor>3.5</maxSpeedFactor>
-        <!-- range settings -->
-        <rangeSetting>true</rangeSetting>
-        <minPowerForRange>0</minPowerForRange>
-        <minRange>1</minRange>
-        <maxPowerForRange>500</maxPowerForRange>
-        <maxRange>5</maxRange>
+        <!-- Speed Settings -->
+        <floatrange_SpeedFactor>1~3.5</floatrange_SpeedFactor>
+        <powerPerStepSpeed>4000</powerPerStepSpeed>
+        <powerStepFactor>10</powerStepFactor>
+        <!-- Range Settings -->
+        <floatrange_Range>1~5</floatrange_Range>
+        <powerPerStepRange>125</powerPerStepRange>
+
         <allowManualRangeTypeChange>true</allowManualRangeTypeChange>
         <rangeType>ProjectRimFactory.Common.RectRange</rangeType>
       </li>
@@ -411,7 +407,7 @@
     <comps>
       <li Class="CompProperties_Power">
         <compClass>CompPowerTrader</compClass>
-        <basePowerConsumption>0</basePowerConsumption>
+        <basePowerConsumption>750</basePowerConsumption>
       </li>
       <li Class="ProjectRimFactory.Common.CompProperties_CompOutputAdjustable">
         <SupportDiagonal>true</SupportDiagonal>
@@ -421,18 +417,13 @@
         <heatPerSecond>5</heatPerSecond>
       </li>
       <li Class="ProjectRimFactory.Common.CompProperties_PowerWorkSetting">
-        <!-- speed settings -->
-        <speedSetting>true</speedSetting>
-        <minPowerForSpeed>750</minPowerForSpeed>
-        <minSpeedFactor>1</minSpeedFactor>
-        <maxPowerForSpeed>3000</maxPowerForSpeed>
-        <maxSpeedFactor>4</maxSpeedFactor>
-        <!-- range settings -->
-        <rangeSetting>true</rangeSetting>
-        <minPowerForRange>0</minPowerForRange>
-        <minRange>1</minRange>
-        <maxPowerForRange>500</maxPowerForRange>
-        <maxRange>5</maxRange>
+        <!-- Speed Settings -->
+        <floatrange_SpeedFactor>1~4</floatrange_SpeedFactor>
+        <powerPerStepSpeed>1000</powerPerStepSpeed>
+        <powerStepFactor>1</powerStepFactor>
+        <!-- Range Settings -->
+        <floatrange_Range>1~5</floatrange_Range>
+        <powerPerStepRange>125</powerPerStepRange>
         <allowManualRangeTypeChange>true</allowManualRangeTypeChange>
         <rangeType>ProjectRimFactory.Common.RectRange</rangeType>
       </li>
@@ -504,6 +495,7 @@
     </graphicData>
     <size>(5,5)</size>
     <statBases>
+      <WorkToBuild>5000</WorkToBuild>
       <Cleanliness>-5</Cleanliness>
       <Beauty>-10</Beauty>
       <MarketValue>1340</MarketValue>
@@ -511,30 +503,32 @@
     <description>A simple early stage Furnace with minimal automation. Burns unwanted apparel and smelts raw rescourses into useful materials.\n\nAutomatically takes input materials (or trash) within the white cells surrounding the furnace - it has an input range of one cell - and outputs(yellow cell) any finished metals into a cell you may specify.\n(remember to remove quicly so it dont clog up)\n Use wood to smelt</description>
     <stuffCategories>
       <li>Stony</li>
+      <li>Metallic</li>
     </stuffCategories>
-    <costStuffCount>500</costStuffCount>    <!-- Set price for stone blocks -->
+    <costStuffCount>300</costStuffCount>    <!-- Set price for stone blocks -->
     <constructEffect></constructEffect>
     <costList>
       <Steel>150</Steel>
       <WoodLog>50</WoodLog>
     </costList>
     <recipes>
-      <li>BurnApparel</li>
-      <li>CremateCorpse</li>
       <li>ExtractMetalFromSlag</li>
       <li>MakeSmallFrame</li>
+      <li>CremateCorpse</li>
+      <li>BurnWeapon</li>
+      <li>BurnDrugs</li>
+      <li>BurnApparel</li>
     </recipes>
     <comps>
       <li Class="CompProperties_Refuelable">
-        <fuelConsumptionRate>80.0</fuelConsumptionRate>
+        <fuelConsumptionRate>50.0</fuelConsumptionRate>
         <fuelCapacity>50.0</fuelCapacity>
         <fuelFilter>
           <thingDefs>
             <li>WoodLog</li>
           </thingDefs>
         </fuelFilter>
-        <consumeFuelOnlyWhenUsed>false</consumeFuelOnlyWhenUsed>
-        <!--<consumeFuelOnlyWhenUsed>true</consumeFuelOnlyWhenUsed>-->
+        <consumeFuelOnlyWhenUsed>true</consumeFuelOnlyWhenUsed>
         <showAllowAutoRefuelToggle>true</showAllowAutoRefuelToggle>
       </li>
       <li Class="CompProperties_Glower">
@@ -559,12 +553,12 @@
         <skills>
           <li>
             <def>Artistic</def>
-            <levelInt>5</levelInt>
+            <levelInt>1</levelInt>
           </li>
         </skills>
       </li>
     </modExtensions>
-    <constructionSkillPrerequisite>6</constructionSkillPrerequisite>
+    <constructionSkillPrerequisite>5</constructionSkillPrerequisite>
     <researchPrerequisites>
       <li>PRF_CoreTierO</li>
     </researchPrerequisites>

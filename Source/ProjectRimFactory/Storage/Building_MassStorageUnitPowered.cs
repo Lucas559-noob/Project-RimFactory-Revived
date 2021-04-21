@@ -15,7 +15,7 @@ namespace ProjectRimFactory.Storage
         private static Texture2D StoragePawnAccessSwitchIcon = ContentFinder<Texture2D>.Get("PRFUi/dsu", true);
 
         public override bool CanStoreMoreItems => GetComp<CompPowerTrader>().PowerOn && this.Spawned &&
-            (!def.HasModExtension<DefModExtension_Crate>() || Position.GetThingList(Map).Count(t => t.def.category == ThingCategory.Item) < (def.GetModExtension<DefModExtension_Crate>()?.limit ?? int.MaxValue));
+            (!def.HasModExtension<DefModExtension_Crate>() || Position.GetThingList(Map).Count(t => t.def.category == ThingCategory.Item) < MaxNumberItemsInternal);
         public override bool CanReceiveIO => base.CanReceiveIO && GetComp<CompPowerTrader>().PowerOn && this.Spawned;
 
         public override bool ForbidPawnInput => this.ForbidPawnAccess || !this.pawnAccess || !this.CanStoreMoreItems;
@@ -142,5 +142,25 @@ namespace ProjectRimFactory.Storage
                 return base.GetITabString(itemsSelected);
             }
         }
+
+        //This Exists as I don't know how to call .Any() with CodeInstruction
+        //Can be removed if the Transpiler is Updated to inclued that
+        public static bool AnyPowerd(Map map)
+        {
+            return AllPowered(map).Any();
+        }
+
+        public static IEnumerable<Building_MassStorageUnitPowered> AllPowered(Map map)
+        {
+            foreach (Building_MassStorageUnitPowered item in map.listerBuildings.AllBuildingsColonistOfClass<Building_MassStorageUnitPowered>())
+            {
+                CompPowerTrader comp = item.GetComp<CompPowerTrader>();
+                if (comp == null || comp.PowerOn)
+                {
+                    yield return item;
+                }
+            }
+        }
+
     }
 }

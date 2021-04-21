@@ -5,14 +5,21 @@
     <defName>PRF_FloorIconGroup</defName>
   </DesignatorDropdownGroupDef>
 
+  <!-- ================= Fix for docworld ================= -->
+  <ThingDef Name="PRF_FloorSign" ParentName="PRF_BuildingBase" Abstract="True">
+    <designationCategory>Industrial</designationCategory>
+  </ThingDef>
+
+
   <!-- ================= Base ================= -->
-  <ThingDef Name="PRF_FloorIconBase" ParentName="PRF_BuildingBase" Abstract="True">
-    <description>Weak florescent sig, can be placed on floor or on top of machines or other buildings to show guidance.</description>
+  <ThingDef Name="PRF_FloorIconBase" ParentName="PRF_FloorSign" Abstract="True">
+    <description>Weak florescent sign, can be placed on floor or on top of machines or other buildings to show guidance.</description>
     <designatorDropdown>PRF_FloorIconGroup</designatorDropdown>
     <rotatable>true</rotatable>
     <altitudeLayer>BuildingOnTop</altitudeLayer>
     <clearBuildingArea>false</clearBuildingArea>
     <passability>Standable</passability>
+    <canOverlapZones>true</canOverlapZones>
     <costList>
       <Steel>2</Steel>
       <Silver>1</Silver>

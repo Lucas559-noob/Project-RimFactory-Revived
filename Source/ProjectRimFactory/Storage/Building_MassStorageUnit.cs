@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Text;
+using System.Linq;
 using ProjectRimFactory.Common;
 using ProjectRimFactory.Common.HarmonyPatches;
 using ProjectRimFactory.Storage.Editables;
@@ -12,15 +13,22 @@ namespace ProjectRimFactory.Storage
 {
     [StaticConstructorOnStartup]
     public abstract class Building_MassStorageUnit : Building_Storage, IHideItem, IHideRightClickMenu,
-        IForbidPawnOutputItem, IForbidPawnInputItem
+        IForbidPawnOutputItem, IForbidPawnInputItem ,IRenameBuilding
     {
         private static readonly Texture2D RenameTex = ContentFinder<Texture2D>.Get("UI/Buttons/Rename");
 
         private readonly List<Thing> items = new List<Thing>();
-        private List<Building_StorageUnitIOPort> ports = new List<Building_StorageUnitIOPort>();
-        public string uniqueName;
+        private List<Building_StorageUnitIOBase> ports = new List<Building_StorageUnitIOBase>();
+
+        public string UniqueName { get => uniqueName; set => uniqueName = value; }
+        private string uniqueName;
+        public Building Building => this;
 
         public abstract bool CanStoreMoreItems { get; }
+        // The maximum number of item stacks at this.Position:
+        //   One item on each cell and the rest multi-stacked on Position?
+        public int MaxNumberItemsInternal => (def.GetModExtension<DefModExtension_Crate>()?.limit ?? int.MaxValue)
+                                              - def.Size.Area + 1;
         public List<Thing> StoredItems => items;
         public int StoredItemsCount => items.Count;
         public override string LabelNoCount => uniqueName ?? base.LabelNoCount;
@@ -52,12 +60,12 @@ namespace ProjectRimFactory.Storage
         public virtual bool HideRightClickMenus =>
             def.GetModExtension<DefModExtension_Crate>()?.hideRightClickMenus ?? false;
 
-        public void DeregisterPort(Building_StorageUnitIOPort port)
+        public void DeregisterPort(Building_StorageUnitIOBase port)
         {
             ports.Remove(port);
         }
 
-        public void RegisterPort(Building_StorageUnitIOPort port)
+        public void RegisterPort(Building_StorageUnitIOBase port)
         {
             ports.Add(port);
         }
@@ -146,13 +154,14 @@ namespace ProjectRimFactory.Storage
                     thingsToSplurge[i].DeSpawn();
                     GenPlace.TryPlaceThing(thingsToSplurge[i], Position, Map, ThingPlaceMode.Near);
                 }
-
-            base.DeSpawn();
+            Map.GetComponent<PRFMapComponent>().RemoveIHideRightClickMenu(this);
+            base.DeSpawn(mode);
         }
 
         public override void SpawnSetup(Map map, bool respawningAfterLoad)
         {
             base.SpawnSetup(map, respawningAfterLoad);
+            Map.GetComponent<PRFMapComponent>().AddIHideRightClickMenu(this);
             RefreshStorage();
         }
 
@@ -208,5 +217,59 @@ namespace ProjectRimFactory.Storage
             //    }
             //}
         }
+        //-----------    For compatibility with Pick Up And Haul:    -----------
+        //                  (not used internally in any way)
+        // true if can store, capacity is how many can store (more than one stack possible)
+        public bool CapacityAt(Thing thing, IntVec3 cell, Map map, out int capacity)
+        {
+            //Some Sanity Checks
+            capacity = 0;
+            if (thing == null || map == null || map != this.Map || cell == null || !this.Spawned) {
+                Log.Error("PRF DSU CapacityAt Sanity Check Error");
+                return false;
+            }
+            thing = thing.GetInnerIfMinified();
+
+            //Check if thing can be stored based upon the storgae settings
+            if (!this.Accepts(thing)) {
+                return false;
+            }
+
+            //TODO Check if we want to forbid access if power is off
+            //if (!GetComp<CompPowerTrader>().PowerOn) return false;
+
+            //Get List of items stored in the DSU
+            var storedItems = Position.GetThingList(Map).Where(t => t.def.category == ThingCategory.Item);
+
+            //Find the Stack size for the thing
+            int maxstacksize = thing.def.stackLimit;
+            //Get capacity of partial Stacks
+            //  So 45 Steel and 75 Steel and 11 Steel give 30+64 more capacity for steel
+            foreach (Thing partialStack in storedItems.Where(t => t.def == thing.def && t.stackCount < maxstacksize)) {
+                capacity += maxstacksize - partialStack.stackCount;
+            }
+
+            //capacity of empy slots
+            capacity += (MaxNumberItemsInternal - storedItems.Count()) * maxstacksize;
+
+            //Access point:
+            if (cell != Position) {
+                var maybeThing = Map.thingGrid.ThingAt(cell, ThingCategory.Item);
+                if (maybeThing != null) {
+                    if (maybeThing.def == thing.def) capacity += (thing.def.stackLimit - maybeThing.stackCount);
+                } else {
+                    capacity += thing.def.stackLimit;
+                }
+            }
+            return capacity > 0;
+        }
+        // ...The above? I think?  But without needing to know how many
+        public bool StackableAt(Thing thing, IntVec3 cell, Map map)
+        {
+            return CapacityAt(thing, cell, map, out _);
+        }
+
+
+
     }
 }

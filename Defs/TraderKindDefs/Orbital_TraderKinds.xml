@@ -5,7 +5,7 @@
 
   <TraderKindDef>
     <defName>PRF_Factory_Supplier</defName>
-    <label>Industrial Supply Company</label>
+    <label>Industrial Supply Company(prf)</label>
     <commonality>2</commonality>
     <orbital>true</orbital>
     <stockGenerators>
@@ -185,11 +185,6 @@
       </li> -->
       <!-- POWER items vanilla -->
       <li Class="StockGenerator_SingleDef">
-        <thingDef>PowerSwitch</thingDef>
-        <price>Cheap</price>
-        <countRange>5~40</countRange>
-      </li>
-      <li Class="StockGenerator_SingleDef">
         <thingDef>WoodFiredGenerator</thingDef>
         <price>Cheap</price>
         <countRange>1~10</countRange>
@@ -216,11 +211,12 @@
         <price>Expensive</price>
         <countRange>0~4</countRange>
       </li>
-      <li Class="StockGenerator_SingleDef">
-        <thingDef>GeothermalGenerator</thingDef>
-        <price>Expensive</price>
-        <countRange>0~1</countRange>
-      </li>
+      <!-- Can only be added when Minify Everything is installed. causes constant error spam after buy if not-->
+      <!-- <li Class="StockGenerator_SingleDef"> -->
+        <!-- <thingDef>GeothermalGenerator</thingDef> -->
+        <!-- <price>Expensive</price> -->
+        <!-- <countRange>0~1</countRange> -->
+      <!-- </li> -->
       <!-- Other Vanilla stuff -->
       <li Class="StockGenerator_SingleDef">
         <thingDef>BiofuelRefinery</thingDef>

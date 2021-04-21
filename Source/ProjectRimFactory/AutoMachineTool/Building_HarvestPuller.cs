@@ -16,24 +16,23 @@ namespace ProjectRimFactory.AutoMachineTool
 {
     public class Building_HarvestPuller : Building_ItemPuller
     {
-        protected override Option<Thing> TargetThing()
+        protected override Thing TargetThing()
         {
             Zone_Growing z= (this.Position + this.Rotation.Opposite.FacingCell)
                 .GetZone(this.Map) as Zone_Growing;
-            if ( z == null ) return Nothing<Thing>();
-            if (this.takeForbiddenItems)
-                return z.AllContainedThings
+            Thing target;
+            if ( z == null ) return null;
+            target = z.AllContainedThings
                     .Where(t => t.def.category == ThingCategory.Item)
+                    .Where(t => !t.IsForbidden(Faction.OfPlayer) || this.takeForbiddenItems)
                     .Where(t => this.settings.AllowedToAccept(t))
-                    .Where(t => !this.IsLimit(t))
-                    .FirstOption();
-            else
-                return z.AllContainedThings
-                    .Where(t => t.def.category == ThingCategory.Item)
-                    .Where(t => !t.IsForbidden(Faction.OfPlayer))
-                    .Where(t => this.settings.AllowedToAccept(t))
-                    .Where(t => !this.IsLimit(t))
-                    .FirstOption();
+                    .Where(t => !this.IsLimit(t)).FirstOrDefault<Thing>();
+
+            if (target == null) return target;
+            if (this.takeSingleItems) return (target.SplitOff(1));
+            // SplitOff ensures any item-removal effects happen:
+            return (target.SplitOff(target.stackCount));
+
         }
 
     }

@@ -83,12 +83,12 @@
     <label>factory research terminal</label>
     <thingClass>Building_ResearchBench</thingClass>
     <description>This is a linkable like a multianalyzer but this one have have some special functions.\nIt work as a Simple research table and can research any research not require HitechResearchBench.\nIt will ofcourse also boost your research speed.\nThis is needed for Late tiers Factory research.</description>
-    <uiIconPath>Common/ScienceTerminalIco</uiIconPath>
+    <uiIconScale>0.85</uiIconScale>
     <graphicData>
-      <texPath>Common/ScienceTerminal</texPath>
-      <graphicClass>Graphic_Multi</graphicClass>
-      <shaderType>CutoutComplex</shaderType>
-      <drawSize>(2,2)</drawSize>
+      <texPath>Common/Terminal</texPath>
+      <graphicClass>Graphic_Single</graphicClass>
+      <!--<shaderType>CutoutComplex</shaderType>-->
+      <drawSize>(3.9,3.9)</drawSize>
       <damageData>
         <cornerTL>Damage/Corner</cornerTL>
         <cornerTR>Damage/Corner</cornerTR>
@@ -104,16 +104,18 @@
       <ComponentSpacer>4</ComponentSpacer>
       <PRF_ElectronicChip_I>4</PRF_ElectronicChip_I>
     </costList>
+    <building>
+      <destroySound>BuildingDestroyed_Metal_Medium</destroySound>
+    </building>
     <altitudeLayer>Building</altitudeLayer>
     <useHitPoints>True</useHitPoints>
     <statBases>
       <MaxHitPoints>200</MaxHitPoints>
-      <WorkToBuild>5000</WorkToBuild>
+      <WorkToBuild>10000</WorkToBuild>
       <Flammability>1.0</Flammability>
       <MarketValue>2080</MarketValue>
       <ResearchSpeedFactor>0.65</ResearchSpeedFactor>
-      <SellPriceFactor>0.70</SellPriceFactor>
-      <Mass>50</Mass>
+      <Mass>60</Mass>
     </statBases>
     <size>(2,2)</size>
     <passability>PassThroughOnly</passability>
@@ -128,17 +130,17 @@
         <shortCircuitInRain>true</shortCircuitInRain>
       </li>
       <li Class="CompProperties_Flickable"/>
-      <li Class="CompProperties_Facility">
-        <statOffsets>
-          <ResearchSpeedFactor>0.1</ResearchSpeedFactor>
-        </statOffsets>
-      </li>
       <li Class="CompProperties_AffectedByFacilities">
         <linkableFacilities>
           <li>MultiAnalyzer</li>
         </linkableFacilities>
       </li>
-      <li Class="CompProperties_Breakdownable"/>
+      <li Class="CompProperties_Facility">
+        <statOffsets>
+          <ResearchSpeedFactor>0.2</ResearchSpeedFactor>
+        </statOffsets>
+        <maxSimultaneous>2</maxSimultaneous>
+      </li>
       <li Class="CompProperties_Glower">
         <glowRadius>5</glowRadius>
         <glowColor>(115,198,206,0)</glowColor>
@@ -147,15 +149,18 @@
     <fillPercent>0.5</fillPercent>
     <interactionCellOffset>(0,0,-1)</interactionCellOffset>
     <hasInteractionCell>true</hasInteractionCell>
-    <terrainAffordanceNeeded>Heavy</terrainAffordanceNeeded>
     <designationCategory>Misc</designationCategory>
     <surfaceType>Item</surfaceType>
     <designationHotKey>Misc4</designationHotKey>
     <placeWorkers>
       <li>PlaceWorker_ShowFacilitiesConnections</li>
+      <li>PlaceWorker_PreventInteractionSpotOverlap</li>
     </placeWorkers>
+    <constructionSkillPrerequisite>10</constructionSkillPrerequisite>
+    <terrainAffordanceNeeded>Medium</terrainAffordanceNeeded>
     <researchPrerequisites>
       <li>PRF_CoreTierII</li>
+      <li>MultiAnalyzer</li>
     </researchPrerequisites>
   </ThingDef>
 

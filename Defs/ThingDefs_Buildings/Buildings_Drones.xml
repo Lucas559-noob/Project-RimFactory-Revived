@@ -55,11 +55,6 @@
     </placeWorkers>
     <comps>      <!-- 	A C# class describing what should happen when the thing is interacted with in a specific way. This class might need additional tags to work. -->
       <li Class="CompProperties_Flickable" />
-      <li Class="CompProperties_Power">
-        <compClass>CompPowerTrader</compClass>
-        <shortCircuitInRain>false</shortCircuitInRain>
-        <basePowerConsumption>0</basePowerConsumption>
-      </li>
     </comps>
     <inspectorTabs>
       <li>ProjectRimFactory.Common.ITab_ProductionSettings</li>
@@ -108,9 +103,19 @@
         <initialConfigurableTargetFuelLevel>3</initialConfigurableTargetFuelLevel>
         <drawOutOfFuelOverlay>false</drawOutOfFuelOverlay>
       </li>
+      <li Class="ProjectRimFactory.Common.CompProperties_PowerWorkSetting">
+        <!-- Speed Settings -->
+        <floatrange_SpeedFactor>1~1</floatrange_SpeedFactor>
+        <powerPerStepSpeed>0</powerPerStepSpeed>
+        <powerStepFactor>1</powerStepFactor>
+        <!-- Range Settings -->
+        <floatrange_Range>0~0</floatrange_Range>
+        <powerPerStepRange>0</powerPerStepRange>
+        <allowManualRangeTypeChange>false</allowManualRangeTypeChange>
+        <rangeType>ProjectRimFactory.Common.RectRange</rangeType>
+      </li>
     </comps>
     <rotatable>false</rotatable>
-
     <placeWorkers>
       <li>ProjectRimFactory.Drones.PlaceWorker_DroneStation</li>
     </placeWorkers>
@@ -157,14 +162,20 @@
         <initialConfigurableTargetFuelLevel>1</initialConfigurableTargetFuelLevel>
         <drawOutOfFuelOverlay>false</drawOutOfFuelOverlay>
       </li>
+      <li Class="CompProperties_Power">
+        <compClass>CompPowerTrader</compClass>
+        <shortCircuitInRain>false</shortCircuitInRain>
+        <basePowerConsumption>300</basePowerConsumption>
+      </li>
       <li Class="ProjectRimFactory.Common.CompProperties_PowerWorkSetting">
-        <speedSetting>false</speedSetting>
-        <rangeSetting>true</rangeSetting>
+        <!-- Speed Settings -->
+        <floatrange_SpeedFactor>1~1</floatrange_SpeedFactor>
+        <powerPerStepSpeed>0</powerPerStepSpeed>
+        <powerStepFactor>1</powerStepFactor>
+        <!-- Range Settings -->
+        <floatrange_Range>3~10</floatrange_Range>
+        <powerPerStepRange>150</powerPerStepRange>
         <allowManualRangeTypeChange>true</allowManualRangeTypeChange>
-        <minPowerForRange>300</minPowerForRange>
-        <minRange>3</minRange>
-        <maxPowerForRange>1000</maxPowerForRange>
-        <maxRange>10</maxRange>
         <rangeType>ProjectRimFactory.Common.RectRange</rangeType>
       </li>
     </comps>
@@ -262,14 +273,22 @@
         <initialConfigurableTargetFuelLevel>2</initialConfigurableTargetFuelLevel>
         <drawOutOfFuelOverlay>false</drawOutOfFuelOverlay>
       </li>
+      <li Class="CompProperties_Power">
+        <compClass>CompPowerTrader</compClass>
+        <shortCircuitInRain>false</shortCircuitInRain>
+        <basePowerConsumption>200</basePowerConsumption>
+      </li>
       <li Class="ProjectRimFactory.Common.CompProperties_PowerWorkSetting">
-        <speedSetting>false</speedSetting>
-        <rangeSetting>true</rangeSetting>
+        <!-- Speed Settings -->
+        <floatrange_SpeedFactor>1~1</floatrange_SpeedFactor>
+        <powerPerStepSpeed>0</powerPerStepSpeed>
+        <powerStepFactor>1</powerStepFactor>
+        <!-- Range Settings -->
+        <floatrange_Range>2~5</floatrange_Range>
+        <powerPerStepRange>150</powerPerStepRange>
+
         <allowManualRangeTypeChange>true</allowManualRangeTypeChange>
-        <minPowerForRange>200</minPowerForRange>
-        <minRange>2</minRange>
-        <maxPowerForRange>500</maxPowerForRange>
-        <maxRange>5</maxRange>
+
         <rangeType>ProjectRimFactory.Common.RectRange</rangeType>
       </li>
       <li Class="ProjectRimFactory.Misc.CompProperties_Glower_ColorPick">

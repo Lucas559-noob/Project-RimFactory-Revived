@@ -3,32 +3,70 @@ using System.Collections.Generic;
 using System.Linq;
 using RimWorld;
 using Verse;
+using Verse.AI;
 using ProjectRimFactory.Common;
 using ProjectRimFactory.Common.HarmonyPatches;
 namespace ProjectRimFactory {
     public class PRFGameComponent : GameComponent {
         public List<SpecialSculpture> specialScupltures;  // currently in game
-        public static List<IAssemblerQueue> AssemblerQueue = new List<IAssemblerQueue>();
+        public List<IAssemblerQueue> AssemblerQueue = new List<IAssemblerQueue>();
+
+        public static Pawn PRF_StaticPawn = null;
+        public static Job PRF_StaticJob = null;
+
+
+        public static void GenStaticPawn()
+        {
+            PRF_StaticPawn = PawnGenerator.GeneratePawn(PRFDefOf.PRFSlavePawn, Faction.OfPlayer);
+            PRF_StaticPawn.Name = new NameTriple("...", "PRF_Static", "...");
+        }
 
         public PRFGameComponent(Game game) {
             SpecialSculpture.PreStartGame();
+            
         }
         public override void ExposeData() {
             base.ExposeData();
             Scribe_Collections.Look(ref specialScupltures, "specialSculptures");
+
+            Scribe_Deep.Look(ref PRF_StaticPawn, "PRF_StaticPawn");
+            Scribe_Deep.Look(ref PRF_StaticJob, "PRF_StaticJob");
+
+            if (Scribe.mode != LoadSaveMode.Saving)
+            {
+                PRF_StaticPawn = null;
+                PRF_StaticJob = null;
+
+            }
+          
+
         }
-        public static void RegisterAssemblerQueue(IAssemblerQueue queue)
+        public void RegisterAssemblerQueue(IAssemblerQueue queue)
         {
+            //enshure that there are no duplicates
+            //im shure there is a better way
+           // AssemblerQueue.RemoveAll(q => queue.ToString() == q.ToString());
+
             AssemblerQueue.Add(queue);
+#if DEBUG
+            Debug.Message(Debug.Flag.AssemblerQueue, "RegisterAssemblerQueue " + queue);
+#endif
         }
-        /// <summary>
-        /// Make a sculpture Special!
-        /// Use: Current.Game.GetComponent&lt;PRFGameComponent&gt;().TryAddSpecialSculpture(...)
-        /// </summary>
-        /// <returns><c>true</c>, if the sculpture is now Special.</returns>
-        /// <param name="item">Art item to make Special.</param>
-        /// <param name="specialSculpture">Specific special sculpture; otherwise random</param>
-        public bool TryAddSpecialSculpture(Thing item, SpecialSculpture specialSculpture=null, bool verifyProvidedSculpture = true) {
+        public void DeRegisterAssemblerQueue(IAssemblerQueue queue)
+        {
+            AssemblerQueue.RemoveAll(q => queue.ToString() == q.ToString());
+        }
+
+
+
+            /// <summary>
+            /// Make a sculpture Special!
+            /// Use: Current.Game.GetComponent&lt;PRFGameComponent&gt;().TryAddSpecialSculpture(...)
+            /// </summary>
+            /// <returns><c>true</c>, if the sculpture is now Special.</returns>
+            /// <param name="item">Art item to make Special.</param>
+            /// <param name="specialSculpture">Specific special sculpture; otherwise random</param>
+            public bool TryAddSpecialSculpture(Thing item, SpecialSculpture specialSculpture=null, bool verifyProvidedSculpture = true) {
             if (specialSculpture != null) {
                 if (verifyProvidedSculpture && (specialSculpture.limitToDefs?.Contains(item.def) == false)) return false;
             } else {  // find an acceptable special sculpture
@@ -80,14 +118,89 @@ namespace ProjectRimFactory {
             }
             return false;
         }
-        /*
-        // A quick way to test all the scupltures available, if need be.       
-        public override void LoadedGame() {
-            base.LoadedGame();
-            foreach (var t in Current.Game.CurrentMap.spawnedThings.Where(x => x is Building_Art)) {
-                if (!Current.Game.GetComponent<PRFGameComponent>().TryAddSpecialSculpture(t)) return;
-                Log.Warning("---------added test special scuplture: " + t + " at " + t.Position);
+
+
+        //Ensurs that UpdateThingDescriptions() is only run once.
+        private static bool updatedThingDescriptions = false;
+
+        //Updates the description of Things with ModExtension_ModifyProduct & ModExtension_Miner
+        //It is executed here a it needs to run after all [StaticConstructorOnStartup] have been called 
+        private void UpdateThingDescriptions()
+        {
+            updatedThingDescriptions = true;
+            List<ThingDef> thingDefs = DefDatabase<ThingDef>.AllDefs.Where(d => (d.thingClass == typeof(Industry.Building_DeepQuarry) || d.thingClass == typeof(Building_WorkTable) || d.thingClass == typeof(AutoMachineTool.Building_Miner)) && d.HasModExtension<ModExtension_ModifyProduct>()).ToList();
+            foreach(ThingDef thing in thingDefs)
+            {
+                if (thing != null)
+                {
+                    string HelpText = "\r\n\r\n";
+                    if (thing.recipes != null)
+                    {
+                        HelpText += "PRF_DescriptionUpdate_CanMine".Translate() ;
+                        foreach (RecipeDef recipeDef in thing.recipes)
+                        {
+                            HelpText += String.Format("    - {0} x{1}\r\n", recipeDef.products?[0]?.Label, recipeDef.products?[0]?.count);
+                        }
+                        HelpText += "\r\n\r\n";
+                    }
+
+                    //Get Items that Building_DeepQuarry can Produce
+                    if (thing.thingClass == typeof(Industry.Building_DeepQuarry))
+                    {
+                        List<ThingDef> rocks = Industry.Building_DeepQuarry.PossibleRockDefCandidates.Where(d => !thing.GetModExtension<ModExtension_Miner>()?.IsExcluded(d.building.mineableThing) ?? true).ToList();
+                        HelpText += "PRF_DescriptionUpdate_CanMine".Translate();
+                        foreach (ThingDef rock in rocks)
+                        {
+                            HelpText += String.Format("    - {0} x{1}\r\n", rock.LabelCap , rock.building.mineableYield);
+                        }
+                        HelpText += "\r\n\r\n";
+                    }
+
+
+                        HelpText += thing.GetModExtension<ModExtension_ModifyProduct>()?.GetBonusOverview_Text();
+                    thing.description += HelpText;
+                }
             }
-        }*/
+
+        }
+
+
+        public override void LoadedGame()
+        {
+            base.LoadedGame();
+#if DEBUG
+            //List all queue's for debug use
+            foreach (IAssemblerQueue queue in AssemblerQueue)
+            {
+                Debug.Message(Debug.Flag.AssemblerQueue, "" + queue + "  - " + AssemblerQueue[AssemblerQueue.IndexOf(queue)].Map);
+                Building building = queue as Building;
+                Debug.Message(Debug.Flag.AssemblerQueue, "" + building.Map + " " + building.Position + "  --- ");
+                foreach (Thing thing in AssemblerQueue[AssemblerQueue.IndexOf(queue)].Map.thingGrid.ThingsAt(building.Position))
+                {
+                    Debug.Message(Debug.Flag.AssemblerQueue, " " + thing + " is at " + building.Position);
+                }
+            }
+#endif
+            if (updatedThingDescriptions == false) UpdateThingDescriptions();
+
+           
+
+        }
+
+        public override void StartedNewGame()
+        {
+            base.StartedNewGame();
+            if (updatedThingDescriptions == false) UpdateThingDescriptions();
+        }
+
+        /*
+// A quick way to test all the scupltures available, if need be.       
+public override void LoadedGame() {
+base.LoadedGame();
+foreach (var t in Current.Game.CurrentMap.spawnedThings.Where(x => x is Building_Art)) {
+if (!Current.Game.GetComponent<PRFGameComponent>().TryAddSpecialSculpture(t)) return;
+Log.Warning("---------added test special scuplture: " + t + " at " + t.Position);
+}
+}*/
     }
 }

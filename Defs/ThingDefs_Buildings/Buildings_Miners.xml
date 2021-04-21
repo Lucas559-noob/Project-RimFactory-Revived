@@ -39,17 +39,18 @@
   </ThingDef>
 
   <!--==================== MineShaft T0 ====================-->
+  <!-- This one functions like a vanilla bench and just uses normal recipes, but mod extension make random outputs -->
   <ThingDef ParentName="BenchBase">
     <defName>PRF_MineShaft</defName>
-    <label>MiningShaft</label>
-    <description>A early random ore mineshaft capable of finding stones, steel slag, and other low end resources, also a slim chance to find rares.\nShould be placed in a mountain wall to operate.</description>
+    <label>Mine Shaft</label>
+    <description>Early mine shaft entrance, which let you set a target mine operation where pawn will go into the mountain and mine out what you desire, it also have a slim chance of finding rare/junk bonus items while operating.\nShould be placed in a mountain wall to operate.(may conflict with replace stuff mod)</description>
     <thingClass>Building_WorkTable</thingClass>
-    <designationCategory>Industrial</designationCategory>    <!--architect menu location-->
+    <designationCategory>Production</designationCategory>    <!--architect menu location-->
     <clearBuildingArea>false</clearBuildingArea>
     <altitudeLayer>BuildingOnTop</altitudeLayer>
     <graphicData>
       <texPath>Industry/MiningShaft</texPath>
-      <graphicClass>Graphic_Multi</graphicClass>
+      <graphicClass>Graphic_Single</graphicClass>
       <drawSize>(3,1.1)</drawSize>
       <shaderType>CutoutComplex</shaderType>
       <shadowData>
@@ -87,11 +88,11 @@
       <Cleanliness>-10</Cleanliness>
     </statBases>
     <size>(3,1)</size>
-    <!-- <designatorDropdown>PRF_MinersGroup</designatorDropdown> -->
     <passability>PassThroughOnly</passability>
     <pathCost>50</pathCost>
     <hasInteractionCell>True</hasInteractionCell>
     <interactionCellOffset>(0,0,-1)</interactionCellOffset>
+    <interactionCellIcon />
     <surfaceType>Item</surfaceType>
     <terrainAffordanceNeeded>Heavy</terrainAffordanceNeeded>
     <inspectorTabs>
@@ -101,8 +102,23 @@
       <isEdifice>false</isEdifice>
       <spawnedConceptLearnOpportunity>BillsTab</spawnedConceptLearnOpportunity>
     </building>
-    <comps>
-    </comps>
+    <!-- Here is where magic starts: -->
+    <modExtensions>
+      <li Class="ProjectRimFactory.Common.ModExtension_ModifyProduct">        <!-- see info: Source/ProjectRimFactory/Common/ModExtension_ModifyProduct.txt -->
+        <replaceOrigProduct>true</replaceOrigProduct>
+        <bonusYields Chance="0.10">          <!-- this apply to ALL bills on T0 miner (10% chance) -->
+          <!-- Rare ore Bonus: -->
+          <ChunkSlagSteel Weight="1" Count="1" />
+          <Gold Weight="0.005" Count="5" />
+          <Jade Weight="0.01" Count="5" />
+          <Silver Weight="0.015" Count="10" />
+          <!-- Junk Bonus -->
+          <InsectJelly Weight="0.05" Count="5" />
+          <Steel Weight="0.01" Count="10" />
+          <ComponentIndustrial Weight="0.002" Count="5" />
+        </bonusYields>
+      </li>
+    </modExtensions>
     <researchPrerequisites>
       <li>Stonecutting</li>
     </researchPrerequisites>
@@ -287,7 +303,7 @@
 
   <!--=========================== Portable Miner MkI ==================================-->
   <!-- This is a drone/cultivator type miner that can mine in a selected area. -->
-  <ThingDef ParentName="PRF_MiniDroneStation">
+  <!-- <ThingDef ParentName="PRF_MiniDroneStation">
     <defName>PRF_PortableMinerMkI</defName>
     <label>Portable Miner MkI</label>
     <designatorDropdown>PRF_MinersGroup</designatorDropdown>
@@ -330,8 +346,8 @@
         <drawOutOfFuelOverlay>false</drawOutOfFuelOverlay>
       </li>
       <li Class="ProjectRimFactory.Common.CompProperties_PowerWorkSetting">
-        <speedSetting>false</speedSetting>
-        <rangeSetting>true</rangeSetting>
+        
+        
         <allowManualRangeTypeChange>true</allowManualRangeTypeChange>
         <minPowerForRange>850</minPowerForRange>
         <minRange>6</minRange>
@@ -364,10 +380,10 @@
       <li>PRF_AutonomousMiningII</li>
       <li>PRF_BasicDrones</li>
     </researchPrerequisites>
-  </ThingDef>
+  </ThingDef> -->
 
   <!--=========================== Portable Miner MkII ==================================-->
-  <ThingDef ParentName="PRF_MiniDroneStation">
+  <!-- <ThingDef ParentName="PRF_MiniDroneStation">
     <defName>PRF_PortableMinerMkII</defName>
     <label>Portable Miner MkII</label>
     <designatorDropdown>PRF_MinersGroup</designatorDropdown>
@@ -417,10 +433,10 @@
         <drawOutOfFuelOverlay>false</drawOutOfFuelOverlay>
       </li>
       <li Class="ProjectRimFactory.Common.CompProperties_PowerWorkSetting">
-        <speedSetting>false</speedSetting>
-        <rangeSetting>true</rangeSetting>
+        
+        
         <allowManualRangeTypeChange>true</allowManualRangeTypeChange>
-        <minPowerForRange>0</minPowerForRange>
+        
         <minRange>8</minRange>
         <maxPowerForRange>1700</maxPowerForRange>
         <maxRange>20</maxRange>
@@ -452,7 +468,7 @@
       <li>PRF_AutonomousMiningIII</li>
       <li>PRF_BasicDrones</li>
     </researchPrerequisites>
-  </ThingDef>
+  </ThingDef> -->
 
   <!--==================== Quarry T3.2  ====================-->
   <ThingDef ParentName="PRF_MinersBase">
@@ -571,7 +587,7 @@
       </li>
       <li Class="CompProperties_Power">
         <compClass>CompPowerTrader</compClass>
-        <basePowerConsumption>0</basePowerConsumption>
+        <basePowerConsumption>3000</basePowerConsumption>
         <shortCircuitInRain>false</shortCircuitInRain>
       </li>
       <li Class="CompProperties_HeatPusher">
@@ -582,24 +598,23 @@
         <glowRadius>6</glowRadius>
         <glowColor>(115,198,206,0)</glowColor>
       </li>
+      <li Class="ProjectRimFactory.Common.CompProperties_PowerWorkSetting">
+        <!-- Speed Settings -->
+        <floatrange_SpeedFactor>5~15</floatrange_SpeedFactor>
+        <powerPerStepSpeed>1000</powerPerStepSpeed>
+        <powerStepFactor>1</powerStepFactor>
+        <!-- Range Settings -->
+        <floatrange_Range>0~0</floatrange_Range>
+        <powerPerStepRange>0</powerPerStepRange>
+        <rangeType>ProjectRimFactory.Common.RectRange</rangeType>        <!--Temp-->
+      </li>
     </comps>
     <drawPlaceWorkersWhileSelected>true</drawPlaceWorkersWhileSelected>
-    <placeWorkers>
-      <li>ProjectRimFactory.AutoMachineTool.PlaceWorker_OutputCellsHilight</li>
-    </placeWorkers>
     <inspectorTabs>
       <li>ProjectRimFactory.Common.ITab_PowerSupply</li>      <!-- Power boost -->
       <li>ProjectRimFactory.AutoMachineTool.ITab_Bills2</li>      <!-- AutomachineTool ITab not PRF -->
     </inspectorTabs>
     <modExtensions>
-      <li Class="ProjectRimFactory.AutoMachineTool.ModExtension_WorkSpeed">
-        <speedFactor>10</speedFactor>        <!-- Speed multiplier for mining -->
-        <minPower>3000</minPower>        <!-- minimum boost power -->
-        <maxPower>10000</maxPower>        <!-- maximum boost power -->
-      </li>
-      <li Class="ProjectRimFactory.AutoMachineTool.ModExtension_WorkIORange">
-        <outputCellResolverType>ProjectRimFactory.AutoMachineTool.ProductOutputCellResolver</outputCellResolverType>
-      </li>
       <!--  <li Class="ProjectRimFactory.AutoMachineTool.ModExtension_EffectWorking">
         <effectWorking>Drill</effectWorking>
       </li>        -->      <!-- If want Smoke effect on or not comment out to remove smoke -->

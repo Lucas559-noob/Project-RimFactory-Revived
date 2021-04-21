@@ -23,14 +23,17 @@ namespace ProjectRimFactory.AutoMachineTool {
     /// </summary>
     [StaticConstructorOnStartup]
     public class Graphic_LinkedSplitter : Graphic_LinkedConveyorV2, IHaveGraphicExtraData {
-        // to show the input direction for the splitter:
+        // default arrow to show the input direction for the splitter:
         public static Material arrow00b;
-        // to show all output directions for the splitter:
+        // default arrow to show all output directions for the splitter:
         public static Material arrow01;
 
-        private GraphicData splitterBuildingDoorOpen;
-        private GraphicData splitterBuildingDoorClosed;
-        private GraphicData splitterBuildingBlueprint;
+        public GraphicData splitterBuildingDoorOpen;
+        public GraphicData splitterBuildingDoorClosed;
+        public GraphicData splitterBuildingBlueprint;
+
+        public Material arrowInput;
+        public Material arrowOutput;
 
         static Graphic_LinkedSplitter() {
             arrow01 = MaterialPool.MatFrom("Belts/SmallArrow01");
@@ -38,11 +41,14 @@ namespace ProjectRimFactory.AutoMachineTool {
         }
 
         public override void Init(GraphicRequest req) {
+            // Move all Init to ExtraInit
             var extraData = GraphicExtraData.Extract(req, out GraphicRequest newReq);
             ExtraInit(newReq, extraData);
         }
 
         public override void ExtraInit(GraphicRequest req, GraphicExtraData extraData) {
+            arrowInput = arrow00b;
+            arrowOutput = arrow01;
             base.ExtraInit(req, extraData);
             if (extraData == null) {
                 Log.Error("PRF: invalid XML for conveyor Splitter's graphic:\n" +
@@ -69,6 +75,25 @@ namespace ProjectRimFactory.AutoMachineTool {
                 texPath = doorBasePath + "_Blueprint",
                 drawSize = Vector2.one
             };
+            if (extraData.arrowTexPath1 != null) {
+                this.arrowOutput = MaterialPool.MatFrom(extraData.arrowTexPath1);
+            }
+            if (extraData.arrowTexPath2 != null) {
+                this.arrowInput = MaterialPool.MatFrom(extraData.arrowTexPath2);
+            }
+        }
+
+        //Note: if someone wanted to make this accessible via XML, go for it!
+        public Vector3 BuildingOffset => new Vector3(0, 0.3f, 0); // mostly picked by trial and error
+        // Make sure arrows show over building:
+        public Vector3 ArrowOffset(Rot4 rot)
+        {
+            var preOffset = this.arrowOffsetsByRot4[rot.AsInt];
+            var building = this.BuildingOffset;
+            var offset = new Vector3(preOffset.x,
+                     Mathf.Max(preOffset.y, building.y + 0.01f),
+                     preOffset.z);
+            return offset;
         }
 
         public override void Print(SectionLayer layer, Thing thing) {
@@ -78,28 +103,37 @@ namespace ProjectRimFactory.AutoMachineTool {
             if (thing is Building_BeltSplitter splitter) {
                 if (splitter.IsUnderground && !(layer is SectionLayer_UGConveyor))
                     return;
-                if ((splitter.OutputLinks.ContainsKey(Rot4.South) &&
-                     splitter.OutputLinks[Rot4.South].Active)
-                    || splitter.Rotation == Rot4.North) {
+                // We want to draw the open door only if something is using the S
+                //   facing wall, so either an output link to the S or an incoming link:
+                if ((splitter.OutputLinks.TryGetValue(Rot4.South, out var link) &&
+                     link.Active)
+                    || splitter.IncomingLinks.Any(o => splitter.Position + Rot4.South.FacingCell == o.Position)) {
                     // Draw open door
                     var mat = splitterBuildingDoorOpen.Graphic.MatSingleFor(thing);
-                    Printer_Plane.PrintPlane(layer, thing.TrueCenter() + new Vector3(0, 0.3f, 0),
+                    Printer_Plane.PrintPlane(layer, thing.TrueCenter() + BuildingOffset,
                         Vector2.one, mat);
                 } else {
                     // Draw closed door
                     var mat = splitterBuildingDoorClosed.Graphic.MatSingleFor(thing);
-                    Printer_Plane.PrintPlane(layer, thing.TrueCenter() + new Vector3(0, 0.3f, 0),
+                    Printer_Plane.PrintPlane(layer, thing.TrueCenter() + BuildingOffset,
                         Vector2.one, mat);
                 }
-                // Print the splitter version of the tiny yellow arrow showing direction:
-                Printer_Plane.PrintPlane(layer, thing.TrueCenter()
-                    + new Vector3(0, 1f, 0), this.drawSize, arrow00b,
-                    thing.Rotation.AsAngle);
+                // Print the splitter version of the tiny yellow arrow showing input direction:
+                foreach (var i in splitter.IncomingLinks) {
+                    if (i.Position.IsNextTo(splitter.Position)) { // otherwise need new logic
+                        // splitter.Position + offset = i.Position, so
+                        // offset = i.Position - splitter.Position
+                        var r = Rot4.FromIntVec3(i.Position - splitter.Position);
+                        Printer_Plane.PrintPlane(layer, thing.TrueCenter()
+                                     + ArrowOffset(r), this.drawSize, arrowInput,
+                                     r.Opposite.AsAngle);
+                    }
+                }
                 // print tiny brown arrows pointing in output directions:
                 foreach (var d in splitter.ActiveOutputDirections) {
                     Printer_Plane.PrintPlane(layer, thing.TrueCenter() + 
-                             this.arrowOffsetsByRot4[d.AsInt],
-                             this.drawSize, arrow01, d.AsAngle);
+                             ArrowOffset(d),
+                             this.drawSize, arrowOutput, d.AsAngle);
                 }
             } else { // blueprint?
                 //var mat = FadedMaterialPool.FadedVersionOf(splitterBuildingDoorClosed.Graphic.MatSingleFor(thing), 0.5f);

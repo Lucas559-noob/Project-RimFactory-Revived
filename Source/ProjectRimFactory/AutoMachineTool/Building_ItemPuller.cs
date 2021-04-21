@@ -14,6 +14,7 @@ using ProjectRimFactory.Common;
 
 namespace ProjectRimFactory.AutoMachineTool
 {
+    [StaticConstructorOnStartup] // for registering settings
     public class Building_ItemPuller : Building_BaseLimitation<Thing>, IStorageSetting, IStoreSettingsParent
     {
         public Building_ItemPuller() {
@@ -21,7 +22,9 @@ namespace ProjectRimFactory.AutoMachineTool
         }
         protected bool active = false;
         protected bool takeForbiddenItems=true;
+        protected bool takeSingleItems = false;
         public override Graphic Graphic => this.def.GetModExtension<ModExtension_Graphic>()?.GetByName(GetGraphicName()) ?? base.Graphic;
+        protected const float defaultWorkAmount = 120f;
 
         private string GetGraphicName()
         {
@@ -53,53 +56,32 @@ namespace ProjectRimFactory.AutoMachineTool
             }
             return settings;
         }
-        // See ExposeData for what this is:
-        private ThingFilter backCompatibilityFilter;
-
-        public StorageSettings GetParentStoreSettings() => def.building.fixedStorageSettings;
+        public StorageSettings GetParentStoreSettings() => def.building?.fixedStorageSettings;
 
         protected StorageSettings storageSettings;
         public StorageSettings StorageSettings => this.storageSettings;
 
-        private bool ForcePlace => this.def.GetModExtension<ModExtension_Testing>()?.forcePlacing ?? false;
-
         private bool right = false;
+
+        public bool Getright => right;
 
         private bool OutputSides => this.def.GetModExtension<ModExtension_Puller>()?.outputSides ?? false;
 
-        private bool pickupConveyor = false;
-
         protected override LookMode WorkingLookMode { get => LookMode.Deep; } // despawned
+        /// <summary>
+        /// Whether the puller grabs a single item or the entire stack
+        /// </summary>
+        public bool TakeSingleItems { get => takeSingleItems; set => takeSingleItems = value; }
+
         public override void ExposeData()
         {
-            Scribe_Values.Look<bool>(ref this.pickupConveyor, "pickupConveyor", false);
-
             base.ExposeData();
 
             Scribe_Values.Look<bool>(ref this.active, "active", false);
             Scribe_Values.Look<bool>(ref this.right, "right", false);
             Scribe_Deep.Look(ref settings, "settings", new object[] { this });
             Scribe_Values.Look<bool>(ref this.takeForbiddenItems, "takeForbidden", true);
-
-            if (Scribe.mode != LoadSaveMode.Saving) {
-                // The old filter settings were saved as a ThingFilter under the key 'filter'
-                //   We test for that filter on load and if they exist, we populate the settings 
-                //   with it so no one complains about "oh my puller filter went away!"
-                //   We can phase this out any time after 1 Feb 2021 - I won't feel bad about
-                //   losing someone's settings if they don't play for 6 months. Or, you know,
-                //    sometime after that.   --LWM
-                //   (also remove the field above when removing this)
-                Scribe_Deep.Look(ref this.backCompatibilityFilter, "filter");
-                if (backCompatibilityFilter!=null && Scribe.mode==LoadSaveMode.ResolvingCrossRefs) {
-                    // filter should be done loading by now.
-                    Log.Message("Project RimFactory: updating puller filter to new settings");
-                    if (settings==null) {
-                        settings = new StorageSettings(this);
-                    }
-                    settings.filter = backCompatibilityFilter;
-                }
-            }
-
+            Scribe_Values.Look<bool>(ref this.takeSingleItems, "takeSingleItems", false);
         }
 
         public override void SpawnSetup(Map map, bool respawningAfterLoad)
@@ -107,7 +89,7 @@ namespace ProjectRimFactory.AutoMachineTool
             base.SpawnSetup(map, respawningAfterLoad);
 
             this.settings = GetStoreSettings(); // force init
-            this.forcePlace = ForcePlace;
+            this.forcePlace = false;
 
             if (!respawningAfterLoad) Messages.Message("PRF.NeedToTurnOnPuller".Translate(), 
                      this, MessageTypeDefOf.CautionInput);
@@ -115,8 +97,12 @@ namespace ProjectRimFactory.AutoMachineTool
 
         protected override void Reset()
         {
+            if (this.working != null) {
+                if (!working.Spawned) {
+                    GenPlace.TryPlaceThing(working, Position, Map, ThingPlaceMode.Near, null, p => p != Position);
+                }
+            }
             base.Reset();
-            this.pickupConveyor = false;
         }
 
         protected override TargetInfo ProgressBarTarget()
@@ -124,65 +110,22 @@ namespace ProjectRimFactory.AutoMachineTool
             return this;
         }
 
-        protected virtual Option<Thing> TargetThing()
+        protected virtual Thing TargetThing()
         {
-            var conveyor = this.GetPickableConveyor();
-            if (conveyor.HasValue)
-            {
-                this.pickupConveyor = true;
-                return Option(conveyor.Value.GetThingBy(null)); // already verified it's what we want
-            }
-            if (this.takeForbiddenItems)
-                return (this.Position + this.Rotation.Opposite.FacingCell).SlotGroupCells(this.Map)
-                    .SelectMany(c => c.GetThingList(this.Map))
-                    .Where(t => t.def.category == ThingCategory.Item)
-                    .Where(t => this.settings.AllowedToAccept(t))
-                    .Where(t => !this.IsLimit(t))
-                    .FirstOption();
-            else
-                return (this.Position + this.Rotation.Opposite.FacingCell).SlotGroupCells(this.Map)
-                    .SelectMany(c => c.GetThingList(this.Map))
-                    .Where(t => t.def.category == ThingCategory.Item)
-                    .Where(t => !t.IsForbidden(Faction.OfPlayer))
-                    .Where(t => this.settings.AllowedToAccept(t))
-                    .Where(t => !this.IsLimit(t))
-                    .FirstOption();
-        }
-
-        private Option<Building_BeltConveyor> GetPickableConveyor()
-        {
-            if (this.takeForbiddenItems)
-                return (this.Position + this.Rotation.Opposite.FacingCell).GetThingList(this.Map)
-                    .OfType<Building_BeltConveyor>() // get any conveyors, also casts to conveyors
-                    .Where(b => !b.IsUnderground && b.Carrying() != null)
-                    .Where(b => this.settings.AllowedToAccept(b.Carrying()))
-                    .Where(b => !this.IsLimit(b.Carrying()))
-                    .FirstOption();
-            else
-                return (this.Position + this.Rotation.Opposite.FacingCell).GetThingList(this.Map)
-                    .OfType<Building_BeltConveyor>() // get any conveyors, also casts to conveyors
-                    .Where(b => !b.IsUnderground && b.Carrying() != null)
-                    .Where(b => !b.Carrying().IsForbidden(Faction.OfPlayer))
-                    .Where(b => this.settings.AllowedToAccept(b.Carrying()))
-                    .Where(b => !this.IsLimit(b.Carrying()))
-                    .FirstOption();
+            Thing target;
+            target = (this.Position + this.Rotation.Opposite.FacingCell).AllThingsInCellForUse(this.Map)
+                        .Where(t => !t.IsForbidden(Faction.OfPlayer) || this.takeForbiddenItems)
+                        .Where(t => this.settings.AllowedToAccept(t))
+                        .FirstOrDefault(t => !this.IsLimit(t));
+            if (target == null) return target;
+            if (this.takeSingleItems) return (target.SplitOff(1));
+            // SplitOff ensures any item-removal effects happen:
+            return (target.SplitOff(target.stackCount));
         }
 
         public override IntVec3 OutputCell()
         {
-            if(this.OutputSides)
-            {
-                RotationDirection dir = RotationDirection.Clockwise;
-                if (!this.right)
-                {
-                    dir = RotationDirection.Counterclockwise;
-                }
-                return this.Position + this.Rotation.RotateAsNew(dir).FacingCell;
-            }
-            else
-            {
-                return this.Position + this.Rotation.FacingCell;
-            }
+            return this.def.GetModExtension<ModExtension_Puller>().GetOutputCell(this.Position, this.Rotation, this.right);
         }
 
         public override IEnumerable<Gizmo> GetGizmos()
@@ -229,13 +172,12 @@ namespace ProjectRimFactory.AutoMachineTool
         protected override bool WorkInterruption(Thing working)
         {
             return false;
-            //return this.pickupConveyor ? !this.GetPickableConveyor().HasValue : !working.Spawned || working.Destroyed;
         }
 
         protected override bool TryStartWorking(out Thing target, out float workAmount)
         {
-            workAmount = 120;
-            target = TargetThing().GetOrDefault(null);
+            workAmount = Building_ItemPuller.defaultWorkAmount; // 120
+            target = TargetThing();
             if (target?.Spawned == true) target.DeSpawn();
             return target != null;
         }
@@ -260,46 +202,37 @@ namespace ProjectRimFactory.AutoMachineTool
             }
             base.Placing();
         }
-    }
-
-    public class Building_ItemPullerInputCellResolver : IInputCellResolver
-    {
-        public ModExtension_WorkIORange Parent { get; set; }
-
-        public Color GetColor(IntVec3 cell, Map map, Rot4 rot, CellPattern cellPattern)
+        public override bool AcceptsThing(Thing newThing, IPRF_Building giver)
         {
-            return this.Parent.GetCellPatternColor(cellPattern);
-        }
-
-        public Option<IntVec3> InputCell(ThingDef def, IntVec3 center, IntVec2 size, Map map, Rot4 rot)
-        {
-            return Option(FacingCell(center, size, rot.Opposite));
-        }
-
-        private static readonly List<IntVec3> EmptyList = new List<IntVec3>();
-
-        public IEnumerable<IntVec3> InputZoneCells(ThingDef def, IntVec3 cell, IntVec2 size, Map map, Rot4 rot)
-        {
-            return InputCell(def, cell, size, map, rot).Select(c => c.SlotGroupCells(map)).GetOrDefault(EmptyList);
-        }
-    }
-
-    public class Building_ItemPullerOutputCellResolver : ProductOutputCellResolver
-    {
-        public override Option<IntVec3> OutputCell(ThingDef def, IntVec3 center, IntVec2 size, Map map, Rot4 rot)
-        {
-            IntVec3 defaultCell = IntVec3.Zero;
-            if (def.GetModExtension<ModExtension_Puller>()?.outputSides ?? false)
-            {
-                defaultCell = center + rot.RotateAsNew(RotationDirection.Counterclockwise).FacingCell;
-
+            if (this.State == WorkingState.Ready) {
+                this.ClearActions();
+                if (newThing.Spawned) newThing.DeSpawn();
+                this.ForceStartWork(newThing, defaultWorkAmount);
+                return true;
             }
-            else
-            {
-                defaultCell = center + rot.FacingCell;
-            }
+            return false;
+        }
 
-            return Option(base.OutputCell(def, center, size, map, rot).GetOrDefault(defaultCell));
+        static Building_ItemPuller()
+        {
+            Common.ITab_ProductionSettings.RegisterSetting(ShouldShowSingleVsStackSetting,
+                                           ExtraHeightNeeded, DoSettingsWindowContents);
+        }
+        public static bool ShouldShowSingleVsStackSetting(Thing thing)
+        {
+            return thing is Building_ItemPuller;
+        }
+        public static float ExtraHeightNeeded(Thing t)
+        {
+            return 21f;
+        }
+        public static void DoSettingsWindowContents(Thing t, Listing_Standard ls)
+        {
+            if (t is Building_ItemPuller puller) {
+                bool tmp = puller.takeSingleItems;
+                ls.CheckboxLabeled("PRF.Puller.takeSingleItemsHmm".Translate(), ref tmp, "PRF.Puller.takeSingleItemsDesc".Translate());
+                if (tmp != puller.takeSingleItems) puller.TakeSingleItems = tmp;
+            }
         }
     }
 }
