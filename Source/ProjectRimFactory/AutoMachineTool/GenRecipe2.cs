@@ -1,14 +1,7 @@
-﻿using System;
+﻿using RimWorld;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-
-using RimWorld;
-using Verse;
-using Verse.AI;
-using Verse.Sound;
 using UnityEngine;
-using static ProjectRimFactory.AutoMachineTool.Ops;
+using Verse;
 
 namespace ProjectRimFactory.AutoMachineTool
 {
@@ -24,7 +17,7 @@ namespace ProjectRimFactory.AutoMachineTool
     {
         public static float GetStatValue(this IRecipeProductWorker maker, StatDef stat, bool applyPostProcess = true)
         {
-            if(stat == StatDefOf.FoodPoisonChance)
+            if (stat == StatDefOf.FoodPoisonChance)
             {
                 return 0.0005f;
             }
@@ -35,13 +28,13 @@ namespace ProjectRimFactory.AutoMachineTool
     // TODO:本体更新時に合わせる.
     static class GenRecipe2
     {
-        public static IEnumerable<Thing> MakeRecipeProducts(RecipeDef recipeDef, IRecipeProductWorker worker, List<Thing> ingredients, Thing dominantIngredient, IBillGiver billGiver)
+        public static IEnumerable<Thing> MakeRecipeProducts(RecipeDef recipeDef, IRecipeProductWorker worker, List<Thing> ingredients, Thing dominantIngredient, IBillGiver billGiver, Precept_ThingStyle precept = null)
         {
-            var result = MakeRecipeProductsInt(recipeDef, worker, ingredients, dominantIngredient, billGiver);
+            var result = MakeRecipeProductsInt(recipeDef, worker, ingredients, dominantIngredient, billGiver, precept);
             return result;
         }
 
-        public static IEnumerable<Thing> MakeRecipeProductsInt(RecipeDef recipeDef, IRecipeProductWorker worker, List<Thing> ingredients, Thing dominantIngredient, IBillGiver billGiver)
+        public static IEnumerable<Thing> MakeRecipeProductsInt(RecipeDef recipeDef, IRecipeProductWorker worker, List<Thing> ingredients, Thing dominantIngredient, IBillGiver billGiver, Precept_ThingStyle precept = null)
         {
             float efficiency;
             if (recipeDef.efficiencyStat == null)
@@ -106,7 +99,7 @@ namespace ProjectRimFactory.AutoMachineTool
                             }
                         }
                     }
-                    yield return GenRecipe2.PostProcessProduct(product, recipeDef, worker);
+                    yield return GenRecipe2.PostProcessProduct(product, recipeDef, worker, precept);
                 }
             }
             if (recipeDef.specialProducts != null)
@@ -123,7 +116,7 @@ namespace ProjectRimFactory.AutoMachineTool
                             {
                                 foreach (Thing product2 in ing.SmeltProducts(efficiency))
                                 {
-                                    yield return GenRecipe2.PostProcessProduct(product2, recipeDef, worker);
+                                    yield return GenRecipe2.PostProcessProduct(product2, recipeDef, worker, precept);
                                 }
                             }
                         }
@@ -131,7 +124,7 @@ namespace ProjectRimFactory.AutoMachineTool
                         {
                             foreach (Thing product3 in ButcherProducts(ing, efficiency, worker))
                             {
-                                yield return GenRecipe2.PostProcessProduct(product3, recipeDef, worker);
+                                yield return GenRecipe2.PostProcessProduct(product3, recipeDef, worker, precept);
                             }
                         }
                     }
@@ -139,14 +132,14 @@ namespace ProjectRimFactory.AutoMachineTool
             }
         }
 
-        private static Thing PostProcessProduct(Thing product, RecipeDef recipeDef, IRecipeProductWorker worker)
+        private static Thing PostProcessProduct(Thing product, RecipeDef recipeDef, IRecipeProductWorker worker, Precept_ThingStyle precept = null)
         {
             CompQuality compQuality = product.TryGetComp<CompQuality>();
             if (compQuality != null)
             {
                 if (recipeDef.workSkill == null)
                 {
-                    Log.Error(recipeDef + " needs workSkill because it creates a product with a quality.", false);
+                    Log.Error(recipeDef + " needs workSkill because it creates a product with a quality.");
                 }
                 int level = worker.GetSkillLevel(recipeDef.workSkill);
                 QualityCategory qualityCategory = QualityUtility.GenerateQualityCreatedByPawn(level, false);
@@ -164,6 +157,10 @@ namespace ProjectRimFactory.AutoMachineTool
                     });
                     */
                 }
+            }
+            if (precept != null)
+            {
+                product.StyleSourcePrecept = precept;
             }
             if (product.def.Minifiable)
             {

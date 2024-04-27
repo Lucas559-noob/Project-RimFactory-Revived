@@ -38,12 +38,12 @@
   <ThingDef Name="PRFDroneBase" Abstract="True">
     <statBases>
       <PsychicSensitivity>0</PsychicSensitivity>
-      <ToxicSensitivity>0</ToxicSensitivity>
       <Flammability>0</Flammability>
       <ComfyTemperatureMin>-100</ComfyTemperatureMin>
       <ComfyTemperatureMax>250</ComfyTemperatureMax>
       <LeatherAmount>25</LeatherAmount>
       <Mass>20</Mass>
+      <FilthRate>0</FilthRate>
     </statBases>
     <inspectorTabs>
       <!-- 
@@ -72,7 +72,6 @@
       <nameGeneratorFemale>NamerAnimalGenericFemale</nameGeneratorFemale>
       <manhunterOnDamageChance>0.0125</manhunterOnDamageChance>
       <manhunterOnTameFailChance>0.003</manhunterOnTameFailChance>
-      <nameOnNuzzleChance>0.5</nameOnNuzzleChance>
       <fleshType>Mechanoid</fleshType>
       <needsRest>false</needsRest>
       <hasGenders>false</hasGenders>

@@ -1,22 +1,23 @@
-﻿using System.Collections.Generic;
-using System.Linq;
-using UnityEngine;
-using Verse;
-using RimWorld;
-using ProjectRimFactory.SAL3.UI;
+﻿using ProjectRimFactory.AutoMachineTool;
+using ProjectRimFactory.Common;
 using ProjectRimFactory.SAL3.Tools;
 using ProjectRimFactory.Storage;
 using ProjectRimFactory.Storage.UI;
-using ProjectRimFactory.Common;
-using ProjectRimFactory.Common.HarmonyPatches;
+using RimWorld;
+using System.Collections.Generic;
+using System.Linq;
+using UnityEngine;
+using Verse;
+using Verse.Noise;
 
 namespace ProjectRimFactory.SAL3.Things
 {
-    public class Building_SmartHopper : Building, IStoreSettingsParent, IPowerSupplyMachineHolder , INutrientPasteDispenserInput
+    public class Building_SmartHopper : Building, IStoreSettingsParent, IPowerSupplyMachineHolder, IPickupSettings
     {
         private OutputSettings outputSettings;
 
-        public IEnumerable<IntVec3> cachedDetectorCells;
+        public List<IntVec3> cachedDetectorCells = new List<IntVec3>();
+        private bool cachedDetectorCellsDirty = true;
 
         protected virtual bool ShouldRespectStackLimit => true;
 
@@ -24,29 +25,58 @@ namespace ProjectRimFactory.SAL3.Things
 
         public Thing StoredThing => Position.GetFirstItem(Map);
 
-        protected bool PickupFromGround => (this.def.GetModExtension<ModExtension_Settings>()?.GetByName<bool>("pickupFromGround") ?? false) && pickupFromGround;
+        private CompPowerWorkSetting compPowerWorkSetting;
 
-        private bool pickupFromGround;
+        public IPowerSupplyMachine RangePowerSupplyMachine => compPowerWorkSetting ?? this.GetComp<CompPowerWorkSetting>();
 
-        public IPowerSupplyMachine RangePowerSupplyMachine => this.GetComp<CompPowerWorkSetting>();
-
-        private IEnumerable<IntVec3> CellsToTarget => (this.GetComp<CompPowerWorkSetting>()?.GetRangeCells() ?? GenRadial.RadialCellsAround(Position, this.def.specialDisplayRadius, false)).Where(c => c.GetFirst<Building_SmartHopper>(this.Map) == null);
-
-        public IEnumerable<IntVec3> CellsToSelect
+        private IEnumerable<IntVec3> CellsToTarget
         {
             get
             {
-                if (Find.TickManager.TicksGame % 50 != 0 && cachedDetectorCells != null)
+                IEnumerable<IntVec3> cells = compPowerWorkSetting?.GetRangeCells() ?? GenRadial.RadialCellsAround(Position, this.def.specialDisplayRadius, false);
+                return cells.Where(c => c.GetFirst<Building_SmartHopper>(this.Map) == null); //Exclude other Smart Hoppers
+            }
+        }
+
+
+        private bool cellIsZone_Stockpile(IntVec3 cell)
+        {
+            return cell.GetZone(Map) is Zone_Stockpile;
+        }
+        private bool cellIsBuilding_Storage(IntVec3 cell)
+        {
+            return cell.GetThingList(Map).FirstOrDefault(t => t is ISlotGroupParent) is Building_Storage;
+        }
+        private bool cellIsBuilding_BeltConveyor(IntVec3 cell)
+        {
+            return cell.GetThingList(Map).Any(t => t is Building_BeltConveyor);
+        }
+
+        public List<IntVec3> CellsToSelect
+        {
+            get
+            {
+                if (Find.TickManager.TicksGame % 50 != 0 && !cachedDetectorCellsDirty)
                 {
                     return cachedDetectorCells;
                 }
 
-                var resultCache = from IntVec3 c
-                                  in this.CellsToTarget
-                                  where this.PickupFromGround || c.HasSlotGroupParent(Map)
-                                  select c;
-                cachedDetectorCells = resultCache;
-                return resultCache;
+                cachedDetectorCellsDirty = false;
+                cachedDetectorCells.Clear();
+                foreach (IntVec3 c in CellsToTarget)
+                {
+                    if (!c.InBounds(this.Map)) continue;
+                    if  ((allowStockpilePickup && cellIsZone_Stockpile(c)) || 
+                        (allowStoragePickup && cellIsBuilding_Storage(c)) || 
+                        (allowBeltPickup && cellIsBuilding_BeltConveyor(c)) ||
+                        (this.allowGroundPickup && !cellIsZone_Stockpile(c) && !cellIsBuilding_Storage(c) && !cellIsBuilding_BeltConveyor(c))
+                        )
+                    {
+                        cachedDetectorCells.Add(c);
+                    }
+                }
+
+                return cachedDetectorCells;
             }
         }
 
@@ -56,9 +86,13 @@ namespace ProjectRimFactory.SAL3.Things
             {
                 foreach (var c in CellsToSelect)
                 {
-                    if (!c.InBounds(this.Map)) continue;
-                    foreach (Thing t in GatherThingsUtility.AllThingsInCellForUse(c, Map)) {
-                        yield return t;
+                    foreach (Thing t in GatherThingsUtility.AllThingsInCellForUse(c, Map,AllowStockpilePickup))
+                    {
+                        var SlotGroupParrent = t.GetSlotGroup()?.parent;
+                        if (allowForbiddenPickup || !t.IsForbidden(Faction.OfPlayer))
+                        {
+                            yield return t;
+                        }
                     }
                 }
             }
@@ -82,11 +116,57 @@ namespace ProjectRimFactory.SAL3.Things
             }
         }
 
-        public Thing NPDI_Item =>  StoredThing;
+
+
+        private bool allowGroundPickup = false;
+        private bool allowStockpilePickup = false;
+        private bool allowStoragePickup = false;
+        private bool allowForbiddenPickup = false;
+        private bool allowBeltPickup = false;
+
+        public bool AllowGroundPickup
+        {
+            get => allowGroundPickup; 
+            
+            set
+            {
+                if (value != allowGroundPickup) cachedDetectorCellsDirty = true;
+                allowGroundPickup = value;
+            }
+        }
+        public bool AllowStockpilePickup
+        {
+            get => allowStockpilePickup; 
+            set
+            {
+                if (value != allowStockpilePickup) cachedDetectorCellsDirty = true;
+                allowStockpilePickup = value;
+            }
+        }
+        public bool AllowStoragePickup
+        {
+            get => allowStoragePickup; 
+            set
+            {
+                if (value != allowStoragePickup) cachedDetectorCellsDirty = true;
+                allowStoragePickup = value;
+            }
+        }
+        public bool AllowForbiddenPickup { get => allowForbiddenPickup; set => allowForbiddenPickup = value; }
+        public bool AllowBeltPickup
+        {
+            get => allowBeltPickup; 
+            set
+            {
+                if (value != allowBeltPickup) cachedDetectorCellsDirty = true;
+                allowBeltPickup = value;
+            }
+        }
 
         public override void SpawnSetup(Map map, bool respawningAfterLoad)
         {
             base.SpawnSetup(map, respawningAfterLoad);
+            compPowerWorkSetting = this.GetComp<CompPowerWorkSetting>();
             if (settings == null)
             {
                 settings = new StorageSettings();
@@ -94,7 +174,7 @@ namespace ProjectRimFactory.SAL3.Things
             }
             if (!respawningAfterLoad)
             {
-                this.pickupFromGround = this.def.GetModExtension<ModExtension_Settings>()?.GetByName<bool>("pickupFromGround") ?? false;
+                this.allowGroundPickup = true;
             }
         }
 
@@ -103,7 +183,11 @@ namespace ProjectRimFactory.SAL3.Things
             base.ExposeData();
             Scribe_Deep.Look(ref outputSettings, "outputSettings", "SmartHopper_Minimum_UseTooltip", "SmartHopper_Maximum_UseTooltip");
             Scribe_Deep.Look(ref settings, "settings", this);
-            Scribe_Values.Look(ref this.pickupFromGround, "pickupFromGround");
+            Scribe_Values.Look(ref this.allowGroundPickup, "allowGroundPickup", false);
+            Scribe_Values.Look(ref this.allowStockpilePickup, "allowStockpilePickup", false);
+            Scribe_Values.Look(ref this.allowStoragePickup, "allowStoragePickup", false);
+            Scribe_Values.Look(ref this.allowForbiddenPickup, "allowForbiddenPickup", false);
+            Scribe_Values.Look(ref this.allowBeltPickup, "allowBeltPickup", false);
         }
 
         public override string GetInspectString()
@@ -123,7 +207,7 @@ namespace ProjectRimFactory.SAL3.Things
                 {
                     bool withinLimits = true;
                     if (OutputSettings.useMin) withinLimits = (element.stackCount >= OutputSettings.min);
-                    
+
                     if (element.def.category == ThingCategory.Item && settings.AllowedToAccept(element) && withinLimits)
                     {
                         TryStoreThing(element);
@@ -131,7 +215,7 @@ namespace ProjectRimFactory.SAL3.Things
                     }
                 }
                 if (StoredThing != null)
-                {                    
+                {
                     if (settings.AllowedToAccept(StoredThing))
                     {
                         bool forbidItem = true;
@@ -139,16 +223,16 @@ namespace ProjectRimFactory.SAL3.Things
                         if (OutputSettings.useMin || OutputSettings.useMax)
                         {
                             if (OutputSettings.useMin && StoredThing.stackCount < OutputSettings.min)
-                                forbidItem = false; 
+                                forbidItem = false;
                             else if (OutputSettings.useMax && StoredThing.stackCount > OutputSettings.max)
                                 forbidItem = false;
-                        }                        
+                        }
                         if (forbidItem)
                         {
                             StoredThing.SetForbidden(true, false);
                             return;
                         }
-                    }                       
+                    }
                     StoredThing.SetForbidden(false, false);
                 }
             }
@@ -160,9 +244,9 @@ namespace ProjectRimFactory.SAL3.Things
             {
                 if (StoredThing.CanStackWith(element))
                 {
-                    var num = Mathf.Min(element.stackCount, (StoredThing.def.stackLimit - StoredThing.stackCount));                    
-                    if (OutputSettings.useMax) num = Mathf.Min(element.stackCount, Mathf.Min((StoredThing.def.stackLimit - StoredThing.stackCount),(OutputSettings.max - StoredThing.stackCount)));
-                    
+                    var num = Mathf.Min(element.stackCount, (StoredThing.def.stackLimit - StoredThing.stackCount));
+                    if (OutputSettings.useMax) num = Mathf.Min(element.stackCount, Mathf.Min((StoredThing.def.stackLimit - StoredThing.stackCount), (OutputSettings.max - StoredThing.stackCount)));
+
                     if (num > 0)
                     {
                         var t = element.SplitOff(num);
@@ -175,7 +259,7 @@ namespace ProjectRimFactory.SAL3.Things
                 var num = element.stackCount;
 
                 if (OutputSettings.useMax) num = Mathf.Min(element.stackCount, OutputSettings.max);
-                else if (num > 0)
+                if (num > 0)
                 {
                     // if this is the entire stack, we just get the stack. Important for belts to do it this way:
                     var t = element.SplitOff(num);
@@ -187,8 +271,7 @@ namespace ProjectRimFactory.SAL3.Things
         public override void DrawExtraSelectionOverlays()
         {
             base.DrawExtraSelectionOverlays();
-            if (!this.PickupFromGround)
-                GenDraw.DrawFieldEdges(CellsToSelect.ToList(), Color.green);
+            GenDraw.DrawFieldEdges(CellsToSelect, Color.green);
         }
 
         public override IEnumerable<Gizmo> GetGizmos()
@@ -203,16 +286,6 @@ namespace ProjectRimFactory.SAL3.Things
                 defaultLabel = "SmartHopper_SetTargetAmount".Translate(),
                 action = () => Find.WindowStack.Add(new Dialog_OutputMinMax(OutputSettings)),
             };
-            if (this.def.GetModExtension<ModExtension_Settings>()?.GetByName<bool>("pickupFromGround") ?? false)
-            {
-                yield return new Command_Toggle
-                {
-                    icon = ContentFinder<Texture2D>.Get("PRFUi/PickupFromGround"),
-                    defaultLabel = "SmartHopper_PickupFromGround".Translate(),
-                    toggleAction = () => this.pickupFromGround = !this.pickupFromGround,
-                    isActive = () => this.pickupFromGround
-                };
-            }
         }
 
         public StorageSettings GetStoreSettings()
@@ -226,5 +299,11 @@ namespace ProjectRimFactory.SAL3.Things
         }
 
         public StorageSettings GetParentStoreSettings() => def.building.fixedStorageSettings;
+
+        public void Notify_SettingsChanged()
+        {
+            // Might allow us to cache StorageSettings
+            // unsure about the potential gains / current load
+        }
     }
 }

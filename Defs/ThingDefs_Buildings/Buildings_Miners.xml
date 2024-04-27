@@ -42,8 +42,8 @@
   <!-- This one functions like a vanilla bench and just uses normal recipes, but mod extension make random outputs -->
   <ThingDef ParentName="BenchBase">
     <defName>PRF_MineShaft</defName>
-    <label>Mine Shaft</label>
-    <description>Early mine shaft entrance, which let you set a target mine operation where pawn will go into the mountain and mine out what you desire, it also have a slim chance of finding rare/junk bonus items while operating.\nShould be placed in a mountain wall to operate.(may conflict with replace stuff mod)</description>
+    <label>mine shaft</label>
+    <description>An early mine shaft entrance, which lets you set a target mine operation where a pawn will go into the mountain and mine out what you desire. It also has a slim chance of finding rare/junk bonus items while operating.\nShould be placed in a mountain wall to operate.</description>
     <thingClass>Building_WorkTable</thingClass>
     <designationCategory>Production</designationCategory>    <!--architect menu location-->
     <clearBuildingArea>false</clearBuildingArea>
@@ -132,8 +132,9 @@
   <!-- This is old type miner from original prf, it will mine random ores from any minable resource when powered -->
   <ThingDef ParentName="PRF_MinersBase">
     <defName>PRF_DeepQuarry_mkI</defName>
-    <label>Auger drill(T1)</label>
+    <label>auger drill</label>
     <thingClass>ProjectRimFactory.Industry.Building_DeepQuarry</thingClass>
+    <description>An early automated quarry that continuously extracts resources from the ground, including rock chunks, materials and components. Produces a random resource roughly once every 8 hours.\n\nWARNING: Automated mining operations can draw insectoid infestations to your location!</description>
     <graphicData>
       <texPath>Industry/Drill</texPath>
       <drawSize>(2,2)</drawSize>
@@ -148,7 +149,6 @@
       <Beauty>-25</Beauty>
       <Mass>35</Mass>
     </statBases>
-    <description>An early automated quarry that continuously extracts resources from the ground, including rock chunks, materials and components. Produces a random resource roughly once every 8 hours.(can cause Infestation!)</description>
     <costList>
       <Steel>450</Steel>
       <ComponentIndustrial>5</ComponentIndustrial>
@@ -206,7 +206,7 @@
              <Steel Weight="1" Count="10" />
              <Plasteel Weight="2" Count="15" />
            </bonusYields>
-           <replaceOrigProduct>true</replaceOrigProduct> - whether to replace product or add bonus in addition; defaults to false (add)  
+           <replaceOrigProduct>true</replaceOrigProduct> - whether to replace product or add bonus in addition; defaults to false (add)
       -->
       <li Class="ProjectRimFactory.Common.ModExtension_ModifyProduct">
         <replaceOrigProduct>true</replaceOrigProduct>
@@ -227,8 +227,9 @@
   <!--==================== Quarry T2 ====================-->
   <ThingDef ParentName="PRF_MinersBase">
     <defName>PRF_DeepQuarry_mkII</defName>
-    <label>Pulse Drill(T2)</label>
+    <label>pulse drill Mk.I</label>
     <thingClass>ProjectRimFactory.Industry.Building_DeepQuarry</thingClass>
+    <description>An automated quarry that continuously extracts resources from the ground, including rock chunks, materials and components. Produces a random resource roughly once every 3 hours.\n\nWARNING: Automated mining operations can draw insectoid infestations to your location!</description>
     <graphicData>
       <texPath>Industry/DeepQuarry</texPath>
       <drawSize>(2.4,2.4)</drawSize>
@@ -240,7 +241,6 @@
       <MarketValue>2940</MarketValue>
       <Flammability>0.5</Flammability>
     </statBases>
-    <description>An automated quarry that continuously extracts resources from the ground, including rock chunks, materials and components. Produces a random resource roughly once every 3 hours.(can cause infestation)</description>
     <costList>
       <Steel>400</Steel>
       <ComponentIndustrial>10</ComponentIndustrial>
@@ -305,14 +305,14 @@
   <!-- This is a drone/cultivator type miner that can mine in a selected area. -->
   <!-- <ThingDef ParentName="PRF_MiniDroneStation">
     <defName>PRF_PortableMinerMkI</defName>
-    <label>Portable Miner MkI</label>
+    <label>portable miner Mk.I</label>
     <designatorDropdown>PRF_MinersGroup</designatorDropdown>
     <graphicData>
       <texPath>Drones/MiniDroneStation</texPath>
       <drawRotated>false</drawRotated>
     </graphicData>
     <rotatable>true</rotatable>
-    <description>This is a Portable Drone miner mkI. It works in much same way as a Cultivator, and can be picked carried when your traveling around the rim for your remote mining operations. It is also excellent for excavating for your new base.\n It has a base mining level of 10 but can be upgraded with drone research.\nIt will take breaks to not overheat, and only work 1 hour shifts.</description>
+    <description>This is a portable drone miner Mk.I. It works in much the same way as a cultivator and can be picked and carried when you are traveling around the rim for your remote mining operations. It is also excellent for excavating your new base.\nIt has a base mining level of 10 but can be upgraded with drone research.\nIt will take breaks to not overheat and only work 1-hour shifts.</description>
     <costList>
       <PRF_DroneModule>2</PRF_DroneModule>
       <Steel>30</Steel>
@@ -346,8 +346,8 @@
         <drawOutOfFuelOverlay>false</drawOutOfFuelOverlay>
       </li>
       <li Class="ProjectRimFactory.Common.CompProperties_PowerWorkSetting">
-        
-        
+
+
         <allowManualRangeTypeChange>true</allowManualRangeTypeChange>
         <minPowerForRange>850</minPowerForRange>
         <minRange>6</minRange>
@@ -385,7 +385,7 @@
   <!--=========================== Portable Miner MkII ==================================-->
   <!-- <ThingDef ParentName="PRF_MiniDroneStation">
     <defName>PRF_PortableMinerMkII</defName>
-    <label>Portable Miner MkII</label>
+    <label>portable miner Mk.II</label>
     <designatorDropdown>PRF_MinersGroup</designatorDropdown>
     <graphicData>
       <texPath>Drones/MiniDroneStation</texPath>
@@ -394,7 +394,7 @@
     </graphicData>
     <size>(2,2)</size>
     <rotatable>true</rotatable>
-    <description>This is a Portable Drone miner mkI. It works in much same way as a Cultivator, and can be picked carried when your traveling around the rim for your remote mining operations. It is also excellent for excavating for your new base.\n It has a base mining level of 10 but can be upgraded with drone research.\nIt will take breaks to not overheat, and only work 1 hour shifts.</description>
+    <description>This is a portable drone miner Mk.II. It works in much the same way as a cultivator and can be picked and carried when you are traveling around the rim for your remote mining operations. It is also excellent for excavating your new base.\nIt has a base mining level of 10 but can be upgraded with drone research.\nIt will take breaks to not overheat and only work 1-hour shifts.</description>
     <costList>
       <PRF_DroneModule>4</PRF_DroneModule>
       <Steel>10</Steel>
@@ -433,10 +433,10 @@
         <drawOutOfFuelOverlay>false</drawOutOfFuelOverlay>
       </li>
       <li Class="ProjectRimFactory.Common.CompProperties_PowerWorkSetting">
-        
-        
+
+
         <allowManualRangeTypeChange>true</allowManualRangeTypeChange>
-        
+
         <minRange>8</minRange>
         <maxPowerForRange>1700</maxPowerForRange>
         <maxRange>20</maxRange>
@@ -473,7 +473,8 @@
   <!--==================== Quarry T3.2  ====================-->
   <ThingDef ParentName="PRF_MinersBase">
     <defName>PRF_DeepQuarry_mkIII</defName>
-    <label>Random Pulse Drill(T3)</label>
+    <label>pulse drill Mk.II</label>
+    <description>The most advanced form of the automated quarry, this device uses advanced techniques to safely mine without drawing the attention of insectoids. It will also only produce valuable minerals, never stone.</description>
     <thingClass>ProjectRimFactory.Industry.Building_DeepQuarry</thingClass>
     <graphicData>
       <texPath>Industry/DrillT32</texPath>
@@ -486,7 +487,6 @@
       <MarketValue>6893</MarketValue>
       <Flammability>0.2</Flammability>
     </statBases>
-    <description>This is last tier random ore mining quarry, this one will not create infestation and will only mine rare ores no stones.</description>
     <costList>
       <Steel>1000</Steel>
       <ComponentIndustrial>25</ComponentIndustrial>
@@ -555,9 +555,9 @@
   <!-- it behave more ore less like omnicore drill(mod), and such just this one is automatic (no pawn needed) -->
   <ThingDef ParentName="PRF_MinersBase">
     <defName>PRF_BillTypeMiner_I</defName>
-    <label>Plasma Drill(T3)</label>
+    <label>plasma drill</label>
     <thingClass>ProjectRimFactory.AutoMachineTool.Building_Miner</thingClass>
-    <description>With newest Spacer Technology auto mining have been more precise then ever, and can now adjust what ores to mine for and even balance power for speed. It will set primary ore type and get bonus in rare ores and junk</description>
+    <description>With highly advanced spacer technology auto mining has been made more precise than ever, and you can now adjust what ores to mine for and even balance power for speed. It will set the primary ore type and receive occasional bonuses in the form of rare ores and junk.</description>
     <tickerType>Never</tickerType>
     <graphicData>
       <texPath>Industry/DrillT3</texPath>
@@ -612,7 +612,7 @@
     <drawPlaceWorkersWhileSelected>true</drawPlaceWorkersWhileSelected>
     <inspectorTabs>
       <li>ProjectRimFactory.Common.ITab_PowerSupply</li>      <!-- Power boost -->
-      <li>ProjectRimFactory.AutoMachineTool.ITab_Bills2</li>      <!-- AutomachineTool ITab not PRF -->
+      <li>ProjectRimFactory.SAL3.UI.ITab_SAL3Bills</li>      <!-- ITab -->
     </inspectorTabs>
     <modExtensions>
       <!--  <li Class="ProjectRimFactory.AutoMachineTool.ModExtension_EffectWorking">

@@ -1,18 +1,23 @@
-﻿using System;
+﻿using ProjectRimFactory.Common;
+using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using ProjectRimFactory;
-using ProjectRimFactory.Common;
-using Verse;
 using UnityEngine;
+using Verse;
 
 namespace ProjectRimFactory.Storage
 {
     class Building_ItemSlide : Building_Crate, IPRF_Building
     {
         public IEnumerable<Thing> AvailableThings => throw new NotImplementedException();
+
+        public virtual bool ForbidOnPlacingDefault
+        {
+            get => forbidOnPlacingDefault;
+            set => forbidOnPlacingDefault = value;
+        }
+
+        protected bool forbidOnPlacingDefault = false;
 
         public bool ObeysStorageFilters => false;
 
@@ -21,7 +26,7 @@ namespace ProjectRimFactory.Storage
         public bool AcceptsThing(Thing newThing, IPRF_Building giver = null)
         {
             
-            if (base.Accepts(newThing)){
+            if (base.Accepts(newThing) && CanStoreMoreItems){
                 Notify_ReceivedThing(newThing);
                 return true;
             }
@@ -33,12 +38,12 @@ namespace ProjectRimFactory.Storage
 
         public void EffectOnAcceptThing(Thing t)
         {
-            
+
         }
 
         public void EffectOnPlaceThing(Thing t)
         {
-            
+
         }
 
         //TODO
@@ -46,7 +51,7 @@ namespace ProjectRimFactory.Storage
         {
             if (outputCell.GetThingList(Map).Where(type => type is IPRF_Building || type is Building_StorageUnitIOBase || type is Building_MassStorageUnit).Any<Thing>())
             {
-                return false;
+                return ForbidOnPlacingDefault;
             }
             else
             {
@@ -99,15 +104,15 @@ namespace ProjectRimFactory.Storage
                 //Check if the traget is another slide
                 IntVec3 outputCell = loc + rot.FacingCell;
                 List<Thing> thingList = map.thingGrid.ThingsListAt(outputCell);
-                if( thingList.Where(t => t is Building_ItemSlide || t.def.entityDefToBuild == checkingDef).Any()) return new AcceptanceReport("PRF_PlaceWorker_ItemSlide_Denied".Translate());
-             
+                if (thingList.Where(t => t is Building_ItemSlide || t.def.entityDefToBuild == checkingDef).Any()) return new AcceptanceReport("PRF_PlaceWorker_ItemSlide_Denied".Translate());
+
                 //Check if there is a slide placing there
-                if ( GenAdj.CellsAdjacentCardinal(loc,rot, checkingDef.Size).Where(c => map.thingGrid.ThingsListAt(c).Where(t => (t is Building_ItemSlide || t.def.entityDefToBuild == checkingDef) && (t.Position + t.Rotation.FacingCell == loc) ).Any()).Any() )
+                if (GenAdj.CellsAdjacentCardinal(loc, rot, checkingDef.Size).Where(c => map.thingGrid.ThingsListAt(c).Where(t => (t is Building_ItemSlide || t.def.entityDefToBuild == checkingDef) && (t.Position + t.Rotation.FacingCell == loc)).Any()).Any())
                 {
                     return new AcceptanceReport("PRF_PlaceWorker_ItemSlide_Denied".Translate());
                 }
             }
-                        
+
             return acceptanceBase;
         }
 

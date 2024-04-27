@@ -1,13 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-
+﻿using RimWorld;
 using UnityEngine;
 using Verse;
-using RimWorld;
-
-using static ProjectRimFactory.AutoMachineTool.Ops;
 
 namespace ProjectRimFactory.AutoMachineTool
 {
@@ -96,7 +89,8 @@ namespace ProjectRimFactory.AutoMachineTool
 
         public abstract bool ShouldLinkWith(Rot4 dir, Thing parent);
 
-        public override void Print(SectionLayer layer, Thing thing)
+        //TODO Changed in 1.3 --> extraRotation was added. any changes needed?
+        public override void Print(SectionLayer layer, Thing thing, float extraRotation)
         {
             Material mat = this.LinkedDrawMatFrom(thing, thing.Position);
             Printer_Plane.PrintPlane(layer, thing.TrueCenter(), this.drawSize, mat);
@@ -109,8 +103,9 @@ namespace ProjectRimFactory.AutoMachineTool
                 GraphicDatabase.Get<Graphic_Single>(thingDef.uiIconPath, ShaderTypeDefOf.EdgeDetect.Shader, thingDef.graphicData.drawSize, this.color, this.colorTwo)
                     .DrawWorker(loc, rot, thingDef, thing, extraRotation);
             }
-            else {
-                base.DrawWorker(loc,rot,thingDef,thing,extraRotation);
+            else
+            {
+                base.DrawWorker(loc, rot, thingDef, thing, extraRotation);
             }
 
         }

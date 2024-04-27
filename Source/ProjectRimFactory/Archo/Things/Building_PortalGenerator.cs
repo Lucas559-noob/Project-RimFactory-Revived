@@ -1,10 +1,8 @@
 ﻿using ProjectRimFactory.Common;
 using RimWorld;
-using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
-using System.Text;
 using Verse;
 
 namespace ProjectRimFactory.Archo.Things
@@ -52,7 +50,7 @@ namespace ProjectRimFactory.Archo.Things
         {
             int humanPawnCount = 0;
             Room room = Position.GetRoom(Map);
-            if (room != null && room.OpenRoofCountStopAt(1) == 0)
+            if (room != null && room.OpenRoofCount == 0)
             {
                 // Check floors
                 List<List<IntVec3>> floorPlan = PortalGeneratorUtility.FieldEdgeCells(Position);
@@ -113,7 +111,7 @@ namespace ProjectRimFactory.Archo.Things
         }
         public void LiquidateRoom()
         {
-            Room room = Position.GetRoom(Map, RegionType.Set_All);
+            Room room = Position.GetRoom(Map);
             if (room != null && !room.PsychologicallyOutdoors)
             {
                 float wealth = room.GetStat(RoomStatDefOf.Wealth);

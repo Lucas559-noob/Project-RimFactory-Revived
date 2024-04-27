@@ -1,27 +1,22 @@
-﻿using System;
+﻿using RimWorld;
+using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-
-using RimWorld;
+using UnityEngine;
 using Verse;
 using Verse.AI;
-using Verse.Sound;
-using UnityEngine;
 using static ProjectRimFactory.AutoMachineTool.Ops;
-using ProjectRimFactory.Common;
 
 namespace ProjectRimFactory.AutoMachineTool
 {
-    public class Building_Slaughterhouse : Building_BaseRange<Pawn>, IPRF_SettingsContentLink, ISlaughterhouse
+    public class Building_Slaughterhouse : Building_BaseRange<Pawn>, ISlaughterhouse
     {
-        IPRF_SettingsContent IPRF_SettingsContentLink.PRF_SettingsContentOb => new ITab_Slaughterhouse_Def(this);
 
         public Dictionary<ThingDef, SlaughterSettings> Settings { get => this.slaughterSettings; }
 
-    
-
         private Dictionary<ThingDef, SlaughterSettings> slaughterSettings = new Dictionary<ThingDef, SlaughterSettings>();
+
+        public override bool ProductLimitationDisable => true;
 
         public override IntVec3 OutputCell()
         {
@@ -36,7 +31,7 @@ namespace ProjectRimFactory.AutoMachineTool
             {
                 powerWorkSetting.RangeTypeRot = this.Rotation;
             }
-           
+
         }
 
         public override IEnumerable<Gizmo> GetGizmos()
@@ -81,7 +76,7 @@ namespace ProjectRimFactory.AutoMachineTool
                     if (adult) return e.OrderByDescending(p => p.ageTracker.AgeChronologicalTicks);
                     else return e.OrderBy(p => p.ageTracker.AgeChronologicalTicks);
                 };
-                return new[] { new { Gender = Gender.Male, Adult = true }, new { Gender = Gender.Female, Adult = true }, new { Gender = Gender.Male, Adult = false }, new { Gender = Gender.Female, Adult = false }, new { Gender = Gender.None, Adult = false } , new { Gender = Gender.None, Adult = true } }
+                return new[] { new { Gender = Gender.Male, Adult = true }, new { Gender = Gender.Female, Adult = true }, new { Gender = Gender.Male, Adult = false }, new { Gender = Gender.Female, Adult = false }, new { Gender = Gender.None, Adult = false }, new { Gender = Gender.None, Adult = true } }
                     .Select(a => new { Group = a, Pawns = pawns.Where(p => p.gender == a.Gender && p.IsAdult() == a.Adult) })
                     .Select(g => new { Group = g.Group, Pawns = g.Pawns, SlaughterCount = g.Pawns.Count() - s.KeepCount(g.Group.Gender, g.Group.Adult) })
                     .Where(g => g.SlaughterCount > 0)

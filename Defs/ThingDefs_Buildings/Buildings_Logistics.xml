@@ -24,10 +24,11 @@
     <defName>PRF_WallBeltsGroup</defName>
   </DesignatorDropdownGroupDef>
 
-  <!--==================== Fueling Machine ====================-->
+  <!--==================== Fueling Dispenser ====================-->
   <ThingDef ParentName="PRF_BuildingBase">
     <defName>PRF_FuelingMachine</defName>
-    <label>Fueling machine</label>
+    <label>fueling dispenser</label>
+    <description>A simple refueling machine capable of refueling all standard refuelable objects like generators, braziers, and mortars. It will attempt to fuel the output (yellow cell) with objects from the input (white cell).\n\n(Works with "refuelable comp" buildings and some others eg, SoS, CE.)</description>
     <thingClass>ProjectRimFactory.Industry.Building_FuelingMachine</thingClass>
     <graphicData>
       <texPath>Industry/FuelingMachine</texPath>
@@ -45,7 +46,6 @@
       <Flammability>1.0</Flammability>
       <Mass>15</Mass>
     </statBases>
-    <description>A simple refueling machine capable of refueling all standard refuelable objects like generators, braziers, and mortars. Will attempt to fuel the output (yellow cell) with objects from the input (white cell)..\n\n(Works with "refuelable comp" buildings and some others eg, SoS, CE.)</description>
     <costList>
       <Steel>20</Steel>
       <PRF_MachineFrame_I>1</PRF_MachineFrame_I>
@@ -82,7 +82,8 @@
   <!--============================== Smart Puller / vacuum Hopper ==============================-->
   <ThingDef ParentName="PRF_BuildingBase">
     <defName>PRF_SmartHopper</defName>
-    <label>Smart hopper</label>
+    <label>smart hopper</label>
+    <description>An intelligent hopper that gathers objects within its input range (white cells). It can be toggled to only gather items in stockpiles. Does not push objects elsewhere, only gathers them, and will also grab from nearby belts. This device is unrelated to a nutrient dispenser hopper and does not interface with a nutrient dispenser.</description>
     <thingClass>ProjectRimFactory.SAL3.Things.Building_SmartHopper</thingClass>
     <uiIconScale>0.7</uiIconScale>
     <graphicData>
@@ -99,6 +100,7 @@
     <fillPercent>0.5</fillPercent>
     <pathCost>70</pathCost>
     <building>
+	  <isHopper>true</isHopper>
       <fixedStorageSettings>
         <priority>Preferred</priority>
         <filter>
@@ -118,6 +120,7 @@
     <inspectorTabs>
       <li>ITab_Storage</li>
       <li>ProjectRimFactory.Common.ITab_PowerSupply</li>      <!-- Power boost -->
+      <li>ProjectRimFactory.SAL3.Things.ITab_SmartHopper</li>
     </inspectorTabs>
     <castEdgeShadows>true</castEdgeShadows>
     <statBases>
@@ -127,7 +130,6 @@
       <Flammability>1.0</Flammability>
       <Mass>30</Mass>
     </statBases>
-    <description>An intelligent hopper which gathers objects within input range (white cells). Can be toggled to only gather items in stockpiles. Does not push objects elsewhere, only gathers them, and will also grab from nearby belts. Does not connect to a nutrient dispenser.</description>
     <costList>
       <Steel>30</Steel>
       <ComponentIndustrial>5</ComponentIndustrial>
@@ -168,13 +170,6 @@
     <researchPrerequisites>
       <li>PRF_BeltsIII</li>
     </researchPrerequisites>
-    <modExtensions>
-      <li Class="ProjectRimFactory.Common.ModExtension_Settings">
-        <settings>
-          <pickupFromGround>true</pickupFromGround>
-        </settings>
-      </li>
-    </modExtensions>
   </ThingDef>
 
 
@@ -251,7 +246,8 @@
   <ThingDef ParentName="PRF_Puller_Base">
     <defName>PRF_GrowzonePuller_I</defName>
     <thingClass>ProjectRimFactory.AutoMachineTool.Building_HarvestPuller</thingClass>
-    <label>Growzone puller</label>
+    <label>growzone puller</label>
+    <description>A specialized puller that will pull from adjacent grow zones. It must be connected to the grow zone to function properly.</description>
     <placeWorkers>
       <li>ProjectRimFactory.Common.PlaceWorker_GrowZonePuller</li>
     </placeWorkers>
@@ -263,7 +259,6 @@
       <MarketValue>597</MarketValue>
     </statBases>
     <passability>Impassable</passability>
-    <description>A specialized puller that will pull from adjacent grow zones. Must be connected to the grow zone to function properly.</description>
     <altitudeLayer>Building</altitudeLayer>
     <graphicData>
       <texPath>Belts/Growzone</texPath>
@@ -316,7 +311,8 @@
   <!--======================================= Item Puller mkI ===============================================-->
   <ThingDef ParentName="PRF_Puller_Base">
     <defName>PRF_SimplePuller_I</defName>
-    <label>Item puller MKI</label>
+    <label>item puller Mk.I</label>
+    <description>A device that pulls items from the input (white cell) and pushes them to the output (yellow cell). Turn it on after setting the filters.\nThis device is very flexible in its connections and works with stockpiles, storage, belts (all versions), I/O, and others.</description>    <!--todo: maybe make a message on spawn if not turned on-->
     <costList>      <!-- Remove in Lite -->
       <PRF_RoboticArm>1</PRF_RoboticArm>
       <PRF_MachineFrame_I>1</PRF_MachineFrame_I>
@@ -325,7 +321,6 @@
       <MarketValue>597</MarketValue>
     </statBases>
     <passability>Impassable</passability>
-    <description>Pulls items from input (white cell) and pushes them to output (yellow cell). Requires being turned on after selecting its filters.\nVery flexible in its connection: Stockpiles, storage, belts (all versions), I/O, and others.</description>    <!--todo: maybe make a message on spawn if not turned on-->
     <altitudeLayer>Building</altitudeLayer>
     <graphicData>
       <texPath>Belts/PullerI</texPath>
@@ -369,7 +364,8 @@
   <!--======================================= Item Puller mkII ===============================================-->
   <ThingDef ParentName="PRF_Puller_Base">
     <defName>PRF_SimplePuller_II</defName>
-    <label>Item puller MKII</label>
+    <label>item puller Mk.II</label>
+    <description>An optimized puller that runs at higher speeds. Pulls from input (white cell) to output (yellow cell). Very flexible in its connections.</description>    <!--todo: maybe make a message on spawn if not turned on-->
     <costList>
       <ComponentIndustrial>5</ComponentIndustrial>
       <PRF_RoboticArm>2</PRF_RoboticArm>
@@ -386,7 +382,6 @@
       <MarketValue>959</MarketValue>
     </statBases>
     <passability>Impassable</passability>
-    <description>An optimized puller which runs at higher speeds. Pulls from input (white cell) to output (yellow cell). Very flexible in its connection.</description>   <!--todo: maybe make a message on spawn if not turned on-->
     <altitudeLayer>Building</altitudeLayer>
     <graphicData>
       <texPath>Belts/Puller</texPath>
@@ -414,7 +409,8 @@
   <!--======================================= Item Angle Puller===============================================-->
   <ThingDef ParentName="PRF_Puller_Base">
     <defName>PRF_SimplePuller_II_Side</defName>
-    <label>Item angle puller</label>
+    <label>item angle puller</label>
+    <description>A specialized puller designed to pull items at a 90-degree angle. Functionally similar to the normal puller. Directions can be swapped after placing.</description>
     <costList>
       <ComponentIndustrial>5</ComponentIndustrial>
       <PRF_RoboticArm>2</PRF_RoboticArm>
@@ -430,7 +426,6 @@
       <MarketValue>959</MarketValue>
     </statBases>
     <passability>Impassable</passability>
-    <description>An specialized puller designed to pull items from a 90 degree angle. Functionally similar to normal puller. Directions can be swapped after placing.</description>
     <altitudeLayer>Building</altitudeLayer>
     <researchPrerequisites Inherit="false">
       <li>PRF_BeltsIII</li>
@@ -483,7 +478,8 @@
   <!--======================================= Wall Item Puller ===============================================-->
   <ThingDef ParentName="PRF_Puller_Base">
     <defName>PRF_SimplePuller_II_Wall</defName>
-    <label>Wall item puller</label>
+    <label>wall item puller</label>
+    <description>A specialized item puller that functions as a wall, pushing items from input (white cell) to output (yellow cell). The wall puller is insulated enough for use in freezers and secure enough for prisons.</description>
     <costList>
       <ComponentIndustrial>5</ComponentIndustrial>
       <PRF_RoboticArm>2</PRF_RoboticArm>
@@ -498,7 +494,6 @@
     <statBases>
       <MarketValue>959</MarketValue>
     </statBases>
-    <description>A specialized item puller that functions as a wall, pushing items from input (white cell) to output (yellow cell). The wall puller is insulated enough for use in freezers and secure enough for prisons.</description>
     <altitudeLayer>BuildingOnTop</altitudeLayer>
     <building>
       <isEdifice>false</isEdifice>
@@ -601,8 +596,8 @@
   <!--======================================= Conveyor belt normal ===============================================-->
   <ThingDef ParentName="PRF_DraggableConveyorBelt_Base">
     <defName>PRF_Conveyor_Simple_I</defName>
-    <label>Conveyor belt</label>
-    <description>Conveyor belts transport items from one end to the other. It will dump into storage or stockpiles - or just leave stuff on the ground when the belts end. Because they are rather unsophisticated, they will happily dump whatever they have off the end if there is room.\nA corner can be made by leading the belt into the side of another belt and it will seamlessly continue.</description>
+    <label>conveyor belt</label>
+    <description>An industrial-grade assembly belt used for the transportation of items in a specific direction to a specific location. Useful for automatically hauling products without having your colonists do it themselves. It will dump into storage or stockpiles - or just leave stuff on the ground when the belts end. Because they are rather unsophisticated, they will happily dump whatever they have off the end if there is room.\nA corner can be made by leading the belt into the side of another belt and it will seamlessly continue.</description>
     <clearBuildingArea>false</clearBuildingArea>
     <uiIconPath>Belts/v3/BeltConveyorIcon</uiIconPath>
     <graphicData>
@@ -624,7 +619,7 @@
   <!--======================================= Fast Conveyor belt ===============================================-->
   <ThingDef ParentName="PRF_DraggableConveyorBelt_Base">
     <defName>PRF_Conveyor_Simple_II</defName>
-    <label>Fast conveyor belt</label>
+    <label>fast conveyor belt</label>
     <description>An upgraded version of the conveyor belt which transports at twice the speed. Functions similarly to the standard belt, dumping into storage, stockpiles, or empty space.\nA corner can be made by leading the belt into the side of another belt and it will seamlessly continue.</description>
     <clearBuildingArea>false</clearBuildingArea>
     <costList>      <!-- same in Lite -->
@@ -672,7 +667,7 @@
   <!--======================================= Express Conveyor belt ===============================================-->
   <ThingDef ParentName="PRF_DraggableConveyorBelt_Base">
     <defName>PRF_Conveyor_Simple_III</defName>
-    <label>Express conveyor belt</label>
+    <label>express conveyor belt</label>
     <description>An advanced conveyor belt for optimal logistics, moving at three times the speed (or 1.5x its predecessor). Functions similarly to the standard belt, dumping into storage, stockpiles, or empty space.\nA corner can be made by leading the belt into the side of another belt and it will seamlessly continue.</description>
     <clearBuildingArea>false</clearBuildingArea>
     <costList>      <!-- same in Lite -->
@@ -720,7 +715,7 @@
   <!--======================================= Conveyor wall ===============================================-->
   <ThingDef ParentName="PRF_DraggableConveyorBelt_Base">
     <defName>PRF_Conveyor_Wall_I</defName>
-    <label>Wall belt</label>
+    <label>wall belt</label>
     <description>Moves items - through walls! You can use these to traverse walls or move items along inside them. When items hit the end, they will move out onto the ground, as long as there is room.</description>
     <designatorDropdown>PRF_WallBeltsGroup</designatorDropdown>
     <altitudeLayer>BuildingOnTop</altitudeLayer>
@@ -754,9 +749,9 @@
   <!--======================================= Conveyor underground ===============================================-->
   <ThingDef ParentName="PRF_DraggableConveyorBelt_Base">
     <defName>PRF_Conveyor_UG_I</defName>
-    <label>Underground belt</label>
+    <label>underground belt</label>
     <designatorDropdown>PRF_UgBeltsGroup</designatorDropdown>
-    <description>Underground conveyor belts carry items in tunnels under the ground, safely under walls, machines, and other belts without connecting.\nDoes not require an entrance or exit unless merging with a standard above-ground belt.</description>
+    <description>Underground conveyor belts carry items in tunnels under the ground, safely under walls, machines, and other belts without connecting.\nDoes not require an entrance or exit unless it should merge with a standard above-ground belt.</description>
     <altitudeLayer>Gas</altitudeLayer>    <!-- FloorEmplacement -->
     <canOverlapZones>true</canOverlapZones>
     <pathCost>0</pathCost>
@@ -849,7 +844,7 @@
   <!--======================================= Conveyor floor connector to underground ===============================================-->
   <ThingDef ParentName="PRF_UGConnector_Base">
     <defName>PRF_Conveyor_Connector_To_UG</defName>
-    <label>Underground belt entrance</label>
+    <label>underground belt entrance</label>
     <description>Connects ground conveyor belts to underground conveyors. This is the entrance to the subterranean passages.</description>
     <graphicData>
       <texPath>AutoMachineTool/Buildings/undergroundIn</texPath>
@@ -887,7 +882,7 @@
   <!--======================================= Conveyor underground connector to floor ===============================================-->
   <ThingDef ParentName="PRF_UGConnector_Base">
     <defName>PRF_Conveyor_Connector_To_Floor</defName>
-    <label>Underground belt exit</label>
+    <label>underground belt exit</label>
     <description>Connects the underground conveyor belt to the above-ground conveyor. Provides an exit back to the surface and will drop items on the floor if there is no conveyor.</description>
     <graphicData>
       <texPath>AutoMachineTool/Buildings/undergroundOut</texPath>
@@ -928,8 +923,8 @@
   <ThingDef ParentName="PRF_Conveyor_Base" Name="PRF_Belt_Splitter">
     <defName>PRF_Conveyor_Splitter_I</defName>
     <thingClass>ProjectRimFactory.AutoMachineTool.Building_BeltSplitter</thingClass>
-    <label>Conveyor splitter</label>
-    <description>An automated unit that directs items on a conveyor belt in different directions depending on filters, handled by a very basic AI. If no filters are set, it will simply split where items passing through go. Directions in settings are output, and must be enabled.</description>
+    <label>conveyor splitter</label>
+    <description>An automated unit that directs items on a conveyor belt in different directions depending on filters, handled by a very basic AI. If no filters are set, it will simply split where items passing through go. Directions in settings are output and must be enabled.</description>
     <pathCost>120</pathCost>
     <passability>PassThroughOnly</passability>
     <clearBuildingArea>true</clearBuildingArea>
@@ -1005,9 +1000,9 @@
   <!--======================================= Conveyor Splitter UG ===============================================-->
   <ThingDef ParentName="PRF_Belt_Splitter">
     <defName>PRF_Conveyor_Splitter_UG</defName>
-    <label>Underground splitter</label>
+    <label>underground splitter</label>
     <designatorDropdown>PRF_UgBeltsGroup</designatorDropdown>
-    <description>A subterranean conveyor splitter. Functions similarly to an above ground splitter, minus the mess.</description>
+    <description>A subterranean conveyor splitter. Functions similarly to an above-ground splitter, minus the mess.</description>
     <canOverlapZones>true</canOverlapZones>
     <altitudeLayer>FloorEmplacement</altitudeLayer>
     <pathCost>0</pathCost>
@@ -1063,8 +1058,8 @@
   <!--======================================= Conveyor Splitter Wall ===============================================-->
   <ThingDef ParentName="PRF_Belt_Splitter">
     <defName>PRF_Conveyor_Splitter_Wall</defName>
-    <label>Wall splitter</label>
-    <description>A conveyor splitter built into the walls. Functions similarly to standard splitters, connecting to above ground belts.</description>
+    <label>wall splitter</label>
+    <description>A conveyor splitter built into the walls. Functions similarly to standard splitters, connecting to above-ground belts.</description>
     <designatorDropdown>PRF_WallBeltsGroup</designatorDropdown>
     <altitudeLayer>BuildingOnTop</altitudeLayer>
     <pathCost>0</pathCost>

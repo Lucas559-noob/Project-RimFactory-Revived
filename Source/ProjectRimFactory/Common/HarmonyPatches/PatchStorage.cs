@@ -1,43 +1,44 @@
-﻿using System;
+﻿using ProjectRimFactory.Storage;
+using RimWorld;
+using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-using RimWorld;
-using Verse;
 using UnityEngine;
-using HarmonyLib;
-using ProjectRimFactory.Storage;
+using Verse;
 
 namespace ProjectRimFactory.Common.HarmonyPatches
 {
-    [HarmonyPatch(typeof(ForbidUtility), "IsForbidden", new Type[] { typeof(Thing), typeof(Pawn) })]
     class Patch_ForbidUtility_IsForbidden
     {
         static bool Prefix(Thing t, Pawn pawn, out bool __result)
         {
             __result = true;
-            if (t != null && t.Map != null && t.def.category == ThingCategory.Item)
+            if (t != null)
             {
-                if (PatchStorageUtil.Get<IForbidPawnOutputItem>(t.Map, t.Position)?.ForbidPawnOutput ?? false)
+                Map thingmap = t.Map;
+                if (thingmap != null && t.def.category == ThingCategory.Item)
                 {
-                    return false;
+                    if (PatchStorageUtil.GetPRFMapComponent(thingmap)?.ShouldForbidPawnOutputAtPos(t.Position) ?? false)
+                    {
+                        return false;
+                    }
                 }
             }
             return true;
         }
     }
 
-    [HarmonyPatch(typeof(Building_Storage), "Accepts")]
     class Patch_Building_Storage_Accepts
     {
         static bool Prefix(Building_Storage __instance, Thing t, out bool __result)
         {
             __result = false;
-            if (PatchStorageUtil.Get<IForbidPawnInputItem>(__instance.Map, __instance.Position)?.ForbidPawnInput ?? false)
+            //Check if pawn input is forbidden
+            if ((__instance as IForbidPawnInputItem)?.ForbidPawnInput ?? false)
             {
-                if (!__instance.slotGroup.HeldThings.Contains(t))
+                //#699 #678
+                //This check is needed to support the use of the Limit function for the IO Ports
+                if (__instance.Position != t.Position) 
                 {
                     return false;
                 }
@@ -46,7 +47,6 @@ namespace ProjectRimFactory.Common.HarmonyPatches
         }
     }
 
-    [HarmonyPatch(typeof(FloatMenuMakerMap), "ChoicesAtFor")]
     class Patch_FloatMenuMakerMap_ChoicesAtFor
     {
         static bool Prefix(Vector3 clickPos, Pawn pawn, out List<FloatMenuOption> __result)
@@ -61,14 +61,13 @@ namespace ProjectRimFactory.Common.HarmonyPatches
         }
     }
 
-    [HarmonyPatch(typeof(Thing), "DrawGUIOverlay")]
     class Patch_Thing_DrawGUIOverlay
     {
         static bool Prefix(Thing __instance)
         {
             if (__instance.def.category == ThingCategory.Item)
             {
-                if (PatchStorageUtil.GetWithTickCache<IHideItem>(__instance.Map, __instance.Position)?.HideItems ?? false)
+                if (PatchStorageUtil.GetPRFMapComponent(__instance.Map)?.ShouldHideItemsAtPos(__instance.Position) ?? false)
                 {
                     return false;
                 }
@@ -77,14 +76,13 @@ namespace ProjectRimFactory.Common.HarmonyPatches
         }
     }
 
-    [HarmonyPatch(typeof(ThingWithComps), "Draw")]
-    class Patch_ThingWithComps_Draw
+    class Patch_ThingWithComps_DrawGUIOverlay
     {
         static bool Prefix(Thing __instance)
         {
             if (__instance.def.category == ThingCategory.Item)
             {
-                if (PatchStorageUtil.GetWithTickCache<IHideItem>(__instance.Map, __instance.Position)?.HideItems ?? false)
+                if (PatchStorageUtil.GetPRFMapComponent(__instance.Map)?.ShouldHideItemsAtPos(__instance.Position) ?? false)
                 {
                     return false;
                 }
@@ -93,14 +91,28 @@ namespace ProjectRimFactory.Common.HarmonyPatches
         }
     }
 
-    [HarmonyPatch(typeof(Thing), "Print")]
     class Patch_Thing_Print
     {
         static bool Prefix(Thing __instance, SectionLayer layer)
         {
             if (__instance.def.category == ThingCategory.Item)
             {
-                if (PatchStorageUtil.GetWithTickCache<IHideItem>(__instance.Map, __instance.Position)?.HideItems ?? false)
+                if (PatchStorageUtil.GetPRFMapComponent(__instance.Map)?.ShouldHideItemsAtPos(__instance.Position) ?? false)
+                {
+                    return false;
+                }
+            }
+            return true;
+        }
+    }
+
+    class Patch_MinifiedThing_Print
+    {
+        static bool Prefix(Thing __instance, SectionLayer layer)
+        {
+            if (__instance.def.category == ThingCategory.Item)
+            {
+                if (PatchStorageUtil.GetPRFMapComponent(__instance.Map)?.ShouldHideItemsAtPos(__instance.Position) ?? false)
                 {
                     return false;
                 }
@@ -113,6 +125,18 @@ namespace ProjectRimFactory.Common.HarmonyPatches
     {
         private static Dictionary<Tuple<Map, IntVec3, Type>, object> cache = new Dictionary<Tuple<Map, IntVec3, Type>, object>();
         private static int lastTick = 0;
+        private static Dictionary<Map, PRFMapComponent> mapComps = new Dictionary<Map, PRFMapComponent>();
+
+        public static PRFMapComponent GetPRFMapComponent(Map map)
+        {
+            PRFMapComponent outval = null;
+            if (map is not null && !mapComps.TryGetValue(map, out outval))
+            {
+                outval = map.GetComponent<PRFMapComponent>();
+                mapComps.Add(map, outval);
+            }
+            return outval;
+        }
 
         public static T Get<T>(Map map, IntVec3 pos) where T : class
         {
