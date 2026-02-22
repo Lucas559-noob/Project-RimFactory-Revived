@@ -141,9 +141,11 @@ namespace ProjectRimFactory.Common.BackCompatibility
             switch (providedClassName)
             {
                 case "ProjectRimFactory.AutoMachineTool.PRF_SAL_Trarget+Bill_ProductionWithUftPawnForbidded":
-                    return typeof(ProjectRimFactory.AutoMachineTool.SAL_TargetWorktable.Bill_ProductionWithUftPawnForbidded);
+                    return typeof(AutoMachineTool.SAL_TargetWorktable.Bill_ProductionWithUftPawnForbidded);
                 case "ProjectRimFactory.AutoMachineTool.PRF_SAL_Trarget+Bill_ProductionPawnForbidded":
-                    return typeof(ProjectRimFactory.AutoMachineTool.SAL_TargetWorktable.Bill_ProductionPawnForbidded);
+                    return typeof(AutoMachineTool.SAL_TargetWorktable.Bill_ProductionPawnForbidded);
+                case "ProjectRimFactory.AutoMachineTool.Building_Miner":
+                    return typeof(SAL3.Things.Assemblers.Building_Miner);
             }
 
             return null;

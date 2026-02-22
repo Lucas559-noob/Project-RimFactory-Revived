@@ -1,6 +1,5 @@
 ﻿using ProjectRimFactory.AutoMachineTool;
 using ProjectRimFactory.Common;
-using ProjectRimFactory.SAL3.Tools;
 using ProjectRimFactory.Storage;
 using ProjectRimFactory.Storage.UI;
 using RimWorld;
@@ -8,33 +7,31 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 using Verse;
-using Verse.Noise;
 
 namespace ProjectRimFactory.SAL3.Things
 {
+    // ReSharper disable once UnusedType.Global
     public class Building_SmartHopper : Building, IStoreSettingsParent, IPowerSupplyMachineHolder, IPickupSettings
     {
         private OutputSettings outputSettings;
 
-        public List<IntVec3> cachedDetectorCells = new List<IntVec3>();
+        private readonly List<IntVec3> cachedDetectorCells = [];
         private bool cachedDetectorCellsDirty = true;
 
-        protected virtual bool ShouldRespectStackLimit => true;
+        private StorageSettings settings;
 
-        public StorageSettings settings;
-
-        public Thing StoredThing => Position.GetFirstItem(Map);
+        private Thing StoredThing => Position.GetFirstItem(Map);
 
         private CompPowerWorkSetting compPowerWorkSetting;
 
-        public IPowerSupplyMachine RangePowerSupplyMachine => compPowerWorkSetting ?? this.GetComp<CompPowerWorkSetting>();
+        public IPowerSupplyMachine RangePowerSupplyMachine => compPowerWorkSetting ?? GetComp<CompPowerWorkSetting>();
 
         private IEnumerable<IntVec3> CellsToTarget
         {
             get
             {
-                IEnumerable<IntVec3> cells = compPowerWorkSetting?.GetRangeCells() ?? GenRadial.RadialCellsAround(Position, this.def.specialDisplayRadius, false);
-                return cells.Where(c => c.GetFirst<Building_SmartHopper>(this.Map) == null); //Exclude other Smart Hoppers
+                var cells = compPowerWorkSetting?.GetRangeCells() ?? GenRadial.RadialCellsAround(Position, def.specialDisplayRadius, false);
+                return cells.Where(c => c.GetFirst<Building_SmartHopper>(Map) == null); //Exclude other Smart Hoppers
             }
         }
 
@@ -52,7 +49,7 @@ namespace ProjectRimFactory.SAL3.Things
             return cell.GetThingList(Map).Any(t => t is Building_BeltConveyor);
         }
 
-        public List<IntVec3> CellsToSelect
+        private List<IntVec3> CellsToSelect
         {
             get
             {
@@ -63,16 +60,16 @@ namespace ProjectRimFactory.SAL3.Things
 
                 cachedDetectorCellsDirty = false;
                 cachedDetectorCells.Clear();
-                foreach (IntVec3 c in CellsToTarget)
+                foreach (var cell in CellsToTarget)
                 {
-                    if (!c.InBounds(this.Map)) continue;
-                    if  ((allowStockpilePickup && cellIsZone_Stockpile(c)) || 
-                        (allowStoragePickup && cellIsBuilding_Storage(c)) || 
-                        (allowBeltPickup && cellIsBuilding_BeltConveyor(c)) ||
-                        (this.allowGroundPickup && !cellIsZone_Stockpile(c) && !cellIsBuilding_Storage(c) && !cellIsBuilding_BeltConveyor(c))
+                    if (!cell.InBounds(Map)) continue;
+                    if  ((allowStockpilePickup && cellIsZone_Stockpile(cell)) || 
+                        (allowStoragePickup && cellIsBuilding_Storage(cell)) || 
+                        (allowBeltPickup && cellIsBuilding_BeltConveyor(cell)) ||
+                        (allowGroundPickup && !cellIsZone_Stockpile(cell) && !cellIsBuilding_Storage(cell) && !cellIsBuilding_BeltConveyor(cell))
                         )
                     {
-                        cachedDetectorCells.Add(c);
+                        cachedDetectorCells.Add(cell);
                     }
                 }
 
@@ -80,15 +77,14 @@ namespace ProjectRimFactory.SAL3.Things
             }
         }
 
-        public IEnumerable<Thing> ThingsToSelect
+        private IEnumerable<Thing> ThingsToSelect
         {
             get
             {
-                foreach (var c in CellsToSelect)
+                foreach (var cell in CellsToSelect)
                 {
-                    foreach (Thing t in GatherThingsUtility.AllThingsInCellForUse(c, Map,AllowStockpilePickup))
+                    foreach (var t in cell.AllThingsInCellForUse(Map,AllowStockpilePickup))
                     {
-                        var SlotGroupParrent = t.GetSlotGroup()?.parent;
                         if (allowForbiddenPickup || !t.IsForbidden(Faction.OfPlayer))
                         {
                             yield return t;
@@ -100,29 +96,19 @@ namespace ProjectRimFactory.SAL3.Things
 
         public bool StorageTabVisible => true;
 
-        public OutputSettings OutputSettings
+        private OutputSettings OutputSettings
         {
             get
             {
-                if (outputSettings == null)
-                {
-                    outputSettings = new OutputSettings("SmartHopper_Minimum_UseTooltip", "SmartHopper_Maximum_UseTooltip");
-                }
-                return outputSettings;
-            }
-            set
-            {
-                outputSettings = value;
+                return outputSettings ??= new OutputSettings("SmartHopper_Minimum_UseTooltip", "SmartHopper_Maximum_UseTooltip");
             }
         }
-
-
-
-        private bool allowGroundPickup = false;
-        private bool allowStockpilePickup = false;
-        private bool allowStoragePickup = false;
-        private bool allowForbiddenPickup = false;
-        private bool allowBeltPickup = false;
+        
+        private bool allowGroundPickup;
+        private bool allowStockpilePickup;
+        private bool allowStoragePickup;
+        private bool allowForbiddenPickup;
+        private bool allowBeltPickup;
 
         public bool AllowGroundPickup
         {
@@ -166,7 +152,7 @@ namespace ProjectRimFactory.SAL3.Things
         public override void SpawnSetup(Map map, bool respawningAfterLoad)
         {
             base.SpawnSetup(map, respawningAfterLoad);
-            compPowerWorkSetting = this.GetComp<CompPowerWorkSetting>();
+            compPowerWorkSetting = GetComp<CompPowerWorkSetting>();
             if (settings == null)
             {
                 settings = new StorageSettings();
@@ -174,7 +160,7 @@ namespace ProjectRimFactory.SAL3.Things
             }
             if (!respawningAfterLoad)
             {
-                this.allowGroundPickup = true;
+                allowGroundPickup = true;
             }
         }
 
@@ -183,88 +169,84 @@ namespace ProjectRimFactory.SAL3.Things
             base.ExposeData();
             Scribe_Deep.Look(ref outputSettings, "outputSettings", "SmartHopper_Minimum_UseTooltip", "SmartHopper_Maximum_UseTooltip");
             Scribe_Deep.Look(ref settings, "settings", this);
-            Scribe_Values.Look(ref this.allowGroundPickup, "allowGroundPickup", false);
-            Scribe_Values.Look(ref this.allowStockpilePickup, "allowStockpilePickup", false);
-            Scribe_Values.Look(ref this.allowStoragePickup, "allowStoragePickup", false);
-            Scribe_Values.Look(ref this.allowForbiddenPickup, "allowForbiddenPickup", false);
-            Scribe_Values.Look(ref this.allowBeltPickup, "allowBeltPickup", false);
+            Scribe_Values.Look(ref allowGroundPickup, "allowGroundPickup");
+            Scribe_Values.Look(ref allowStockpilePickup, "allowStockpilePickup");
+            Scribe_Values.Look(ref allowStoragePickup, "allowStoragePickup");
+            Scribe_Values.Look(ref allowForbiddenPickup, "allowForbiddenPickup");
+            Scribe_Values.Look(ref allowBeltPickup, "allowBeltPickup");
         }
 
         public override string GetInspectString()
         {
-            if (OutputSettings.useMin && OutputSettings.useMax) return base.GetInspectString() + "\n" + "SmartHopper_Minimum".Translate(OutputSettings.min) + "\n" + "SmartHopper_Maximum".Translate(OutputSettings.max);
-            else if (OutputSettings.useMin && !OutputSettings.useMax) return base.GetInspectString() + "\n" + "SmartHopper_Minimum".Translate(OutputSettings.min);
-            else if (!OutputSettings.useMin && OutputSettings.useMax) return base.GetInspectString() + "\n" + "SmartHopper_Maximum".Translate(OutputSettings.max);
-            else return base.GetInspectString();
+            if (OutputSettings.UseMin && OutputSettings.UseMax)
+                return base.GetInspectString() + "\n" + "SmartHopper_Minimum".Translate(OutputSettings.Min) + "\n" + "SmartHopper_Maximum".Translate(OutputSettings.Max);
+            if (OutputSettings.UseMin && !OutputSettings.UseMax)
+                return base.GetInspectString() + "\n" + "SmartHopper_Minimum".Translate(OutputSettings.Min);
+            if (!OutputSettings.UseMin && OutputSettings.UseMax)
+                return base.GetInspectString() + "\n" + "SmartHopper_Maximum".Translate(OutputSettings.Max);
+            
+            return base.GetInspectString();
         }
 
-        public override void Tick()
+        protected override void Tick()
         {
             base.Tick();
-            if (Find.TickManager.TicksGame % 35 == 0 && GetComp<CompPowerTrader>().PowerOn)
+            if (!Spawned) return;
+            if (Find.TickManager.TicksGame % 35 != 0 || !GetComp<CompPowerTrader>().PowerOn) return;
+            foreach (var element in ThingsToSelect)
             {
-                foreach (var element in ThingsToSelect)
-                {
-                    bool withinLimits = true;
-                    if (OutputSettings.useMin) withinLimits = (element.stackCount >= OutputSettings.min);
+                var withinLimits = true;
+                if (OutputSettings.UseMin) withinLimits = (element.stackCount >= OutputSettings.Min);
 
-                    if (element.def.category == ThingCategory.Item && settings.AllowedToAccept(element) && withinLimits)
-                    {
-                        TryStoreThing(element);
-                        break;
-                    }
-                }
-                if (StoredThing != null)
+                if (element.def.category == ThingCategory.Item && settings.AllowedToAccept(element) && withinLimits)
                 {
-                    if (settings.AllowedToAccept(StoredThing))
-                    {
-                        bool forbidItem = true;
-
-                        if (OutputSettings.useMin || OutputSettings.useMax)
-                        {
-                            if (OutputSettings.useMin && StoredThing.stackCount < OutputSettings.min)
-                                forbidItem = false;
-                            else if (OutputSettings.useMax && StoredThing.stackCount > OutputSettings.max)
-                                forbidItem = false;
-                        }
-                        if (forbidItem)
-                        {
-                            StoredThing.SetForbidden(true, false);
-                            return;
-                        }
-                    }
-                    StoredThing.SetForbidden(false, false);
+                    TryStoreThing(element);
+                    break;
                 }
             }
+
+            if (StoredThing == null) return;
+            if (settings.AllowedToAccept(StoredThing))
+            {
+                var forbidItem = true;
+
+                if (OutputSettings.UseMin || OutputSettings.UseMax)
+                {
+                    if (OutputSettings.UseMin && StoredThing.stackCount < OutputSettings.Min)
+                        forbidItem = false;
+                    else if (OutputSettings.UseMax && StoredThing.stackCount > OutputSettings.Max)
+                        forbidItem = false;
+                }
+                if (forbidItem)
+                {
+                    StoredThing.SetForbidden(true, false);
+                    return;
+                }
+            }
+            StoredThing.SetForbidden(false, false);
         }
 
-        public virtual void TryStoreThing(Thing element)
+        protected virtual void TryStoreThing(Thing element)
         {
             if (StoredThing != null)
             {
-                if (StoredThing.CanStackWith(element))
-                {
-                    var num = Mathf.Min(element.stackCount, (StoredThing.def.stackLimit - StoredThing.stackCount));
-                    if (OutputSettings.useMax) num = Mathf.Min(element.stackCount, Mathf.Min((StoredThing.def.stackLimit - StoredThing.stackCount), (OutputSettings.max - StoredThing.stackCount)));
+                if (!StoredThing.CanStackWith(element)) return;
+                var num = Mathf.Min(element.stackCount, (StoredThing.def.stackLimit - StoredThing.stackCount));
+                if (OutputSettings.UseMax) num = Mathf.Min(element.stackCount, Mathf.Min((StoredThing.def.stackLimit - StoredThing.stackCount), (OutputSettings.Max - StoredThing.stackCount)));
 
-                    if (num > 0)
-                    {
-                        var t = element.SplitOff(num);
-                        StoredThing.TryAbsorbStack(t, true);
-                    }
-                }
+                if (num <= 0) return;
+                var t = element.SplitOff(num);
+                StoredThing.TryAbsorbStack(t, true);
             }
             else
             {
                 var num = element.stackCount;
 
-                if (OutputSettings.useMax) num = Mathf.Min(element.stackCount, OutputSettings.max);
-                if (num > 0)
-                {
-                    // if this is the entire stack, we just get the stack. Important for belts to do it this way:
-                    var t = element.SplitOff(num);
-                    GenPlace.TryPlaceThing(t, Position, Map, ThingPlaceMode.Direct);
-                }
+                if (OutputSettings.UseMax) num = Mathf.Min(element.stackCount, OutputSettings.Max);
+                if (num <= 0) return;
+                // if this is the entire stack, we just get the stack. Important for belts to do it this way:
+                var t = element.SplitOff(num);
+                GenPlace.TryPlaceThing(t, Position, Map, ThingPlaceMode.Direct);
             }
         }
 
@@ -290,11 +272,9 @@ namespace ProjectRimFactory.SAL3.Things
 
         public StorageSettings GetStoreSettings()
         {
-            if (settings == null)
-            {
-                settings = new StorageSettings();
-                settings.CopyFrom(GetParentStoreSettings());
-            }
+            if (settings != null) return settings;
+            settings = new StorageSettings();
+            settings.CopyFrom(GetParentStoreSettings());
             return settings;
         }
 

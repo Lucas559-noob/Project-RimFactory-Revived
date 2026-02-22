@@ -8,8 +8,8 @@ namespace ProjectRimFactory.AutoMachineTool
     {
         public SectionLayer_UGConveyor(Section section) : base(section)
         {
-            this.requireAddToMapMesh = false;
-            this.relevantChangeTypes = MapMeshFlag.Buildings;
+            requireAddToMapMesh = false;
+            relevantChangeTypes = MapMeshFlagDefOf.Buildings;
         }
 
         public override void DrawLayer()
@@ -39,13 +39,7 @@ namespace ProjectRimFactory.AutoMachineTool
     {
         private static int lastDrawFrame;
 
-        public static bool ShouldDraw
-        {
-            get
-            {
-                return lastDrawFrame + 1 >= Time.frameCount;
-            }
-        }
+        public static bool ShouldDraw => lastDrawFrame + 1 >= Time.frameCount;
 
         public static void DrawOverlayThisFrame()
         {

@@ -1,6 +1,4 @@
 ﻿using HarmonyLib;
-using ProjectRimFactory.Common.HarmonyPatches;
-using ProjectRimFactory.Storage;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -24,7 +22,7 @@ namespace ProjectRimFactory.Common
                 availableSpecialSculptures = SpecialSculpture.LoadAvailableSpecialSculptures(content);
                 
                 ConditionalPatchHelper.InitHarmony(this.HarmonyInstance);
-                ConditionalPatchHelper.Patch_Reachability_CanReach.PatchHandler(ProjectRimFactory_ModSettings.PRF_Patch_Reachability_CanReach);
+                ConditionalPatchHelper.PatchReachabilityCanReach.PatchHandler(ProjectRimFactory_ModSettings.PRF_Patch_Reachability_CanReach);
             }
             catch (Exception ex)
             {
@@ -50,17 +48,30 @@ namespace ProjectRimFactory.Common
 
         public static System.Reflection.MethodInfo ModSupport_ReserchPal_ResetLayout = null;
         public static System.Reflection.MethodInfo ModSupport_ReserchPowl_ResetLayout = null;
+        public static System.Reflection.MethodInfo ModSupport_ResearchTreeContinued_ResetLayout = null;
         public static bool ModSupport_ReserchPal = false;
         public static bool ModSupport_ReserchPowl = false;
+        public static bool ModSupport_ResearchTreeContinued = false;
 
         public static bool ModSupport_SeedsPlease = false;
         public static bool ModSupport_SeedsPleaseLite = false;
 
         public static bool ModSupport_VEF_DualCropExtension = false;
+        
+        private static MethodInfo ModSupport_SOS2_MoveShipFlagGetter = null;
+        public static bool ModSupport_SOS2_MoveShip
+        {
+            get
+            {
+                if (ModSupport_SOS2_MoveShipFlagGetter is null) return false;
+                return (bool)ModSupport_SOS2_MoveShipFlagGetter.Invoke(null, new object[] { });
+            }
+        }
+
 
         private void LoadModSupport()
         {
-            if (ModLister.HasActiveModWithName("RimFridge Updated"))
+            if (ModLister.HasActiveModWithName("RimFridge: Now with Shelves!"))
             {
                 ModSupport_RrimFridge_GetFridgeCache = AccessTools.Method("RimFridge.FridgeCache:GetFridgeCache");
                 ModSupport_RrimFridge_HasFridgeAt = AccessTools.Method("RimFridge.FridgeCache:HasFridgeAt");
@@ -141,72 +152,20 @@ namespace ProjectRimFactory.Common
                 {
                     Log.Warning("Project Rimfactory - Failed to added Support for ResearchPowl when using Lite Mode");
                 }
-            }
-            if (ModLister.HasActiveModWithName("[KV] Save Storage, Outfit, Crafting, Drug, & Operation Settings [1.4]"))
+            }else if (ModLister.HasActiveModWithName("Research Tree (Continued)"))
             {
-                //Get the Local Transpilers
-                //Billstack makes it function
-                //IsWorkTable makes the Gizmos Visible
-                var Transpiler_Billstack = AccessTools.Method("ProjectRimFactory.Common.HarmonyPatches.Patch_SaveStorageSettings_Patch_Building_GetGizmos:Transpiler_Billstack");
-                var Transpiler_IsWorkTable = AccessTools.Method("ProjectRimFactory.Common.HarmonyPatches.Patch_SaveStorageSettings_Patch_Building_GetGizmos:Transpiler_IsWorkTable");
-
-                //Get the Patch that is adding the Save Storage Gizmos
-                var sss_Assembly = LoadedModManager.RunningMods.Where(c => c.PackageId.ToLower() == "savestoragesettings.kv.rw".ToLower())
-                    .First().assemblies.loadedAssemblies.Where(a => a.GetType("SaveStorageSettings.Patch_Building_GetGizmos") != null).First();
-                if (sss_Assembly is not null)
+                ModSupport_ResearchTreeContinued_ResetLayout = AccessTools.Method("FluffyResearchTree.Tree:Reset");
+                if (ModSupport_ResearchTreeContinued_ResetLayout != null)
                 {
-                    //In the Compiled IL the code adding those Gizmos is hidden away in "new" Types
-                    var toplevel_Class = sss_Assembly.GetType("SaveStorageSettings.Patch_Building_GetGizmos");
-                    var AllNestedTpyes = toplevel_Class?.GetNestedTypes(HarmonyLib.AccessTools.all);
-                    if (toplevel_Class is not null && AllNestedTpyes is not null)
-                    {
-                        //Get the Method BaseMethod_IsWorkTable
-                        HarmonyPatches.Patch_SaveStorageSettings_Patch_Building_GetGizmos.Patch_Building_Gizmos = AllNestedTpyes.FirstOrDefault(t => t.FullName.Contains("d__0"));
-
-                        var BaseMethod_IsWorkTable = HarmonyPatches.Patch_SaveStorageSettings_Patch_Building_GetGizmos.Patch_Building_Gizmos?.GetMethod("MoveNext", BindingFlags.NonPublic | BindingFlags.Instance);
-
-                        //Check if we have found Patch_Building_Gizmos
-                        if (HarmonyPatches.Patch_SaveStorageSettings_Patch_Building_GetGizmos.Patch_Building_Gizmos is not null && BaseMethod_IsWorkTable is not null)
-                        {
-                            //Patch Patch_Building_Gizmos
-                            this.HarmonyInstance.Patch(BaseMethod_IsWorkTable, null, null, new HarmonyMethod(Transpiler_IsWorkTable));
-
-                            //The Code adding the different Gizmos is hidden in another Display Class
-                            //That Class Contains the relevant Code in Methods with a Simelar naming
-                            var BaseMethods_Billstack = AllNestedTpyes.FirstOrDefault(t => t.FullName.Contains("c__DisplayClass0_1"))
-                                .GetMethods(HarmonyLib.AccessTools.all).Where(m => m.Name.Contains("b__"));
-
-                            if (BaseMethods_Billstack is not null)
-                            {
-                                //For each of them we want to alter how the Billstack (2. Parameter) is retrieved.
-                                //Luckily we can use the Same Transpiler for this.
-                                foreach (MethodBase BaseMethod_Billstack in BaseMethods_Billstack)
-                                {
-                                    if (BaseMethod_Billstack == null) continue;
-                                    this.HarmonyInstance.Patch(BaseMethod_Billstack, null, null, new HarmonyMethod(Transpiler_Billstack));
-                                }
-                                Log.Message("Added Support for: [KV] Save Storage, Outfit, Crafting, Drug, & Operation Settings");
-                            }
-                            else
-                            {
-                                Log.Error("PRF Could not find savestoragesettings.kv.rw Patch_Building_Gizmos nested c__DisplayClass0_1 Class");
-                            }
-                        }
-                        else
-                        {
-                            Log.Error("PRF Could not find savestoragesettings.kv.rw Patch_Building_Gizmos nested Class and or its MoveNext Method");
-                        }
-                    }
-                    else
-                    {
-                        Log.Error("PRF Could not find savestoragesettings.kv.rw Patch_Building_GetGizmos Class and or SubTypes");
-                    }
+                    Log.Message("Project Rimfactory - added Support for Research Tree (Continued) when using Lite Mode");
+                    ModSupport_ResearchTreeContinued = true;
                 }
                 else
                 {
-                    Log.Error("PRF Could not find savestoragesettings.kv.rw assembly");
+                    Log.Warning("Project Rimfactory - Failed to added Support for Research Tree (Continued) when using Lite Mode");
                 }
             }
+            
             if (ModLister.HasActiveModWithName("SeedsPlease"))
             {
                 Log.Warning("PRF - SeedsPlease Detected - Compatibility probably requires an Update. Please Notify the PRF Team");
@@ -227,8 +186,8 @@ namespace ProjectRimFactory.Common
 
                 if (QualityBuilder_pawnCanConstruct != null && QualityBuilder_getPawnConstructionSkill != null)
                 {
-                    var postfix_pawnCanConstruct = typeof(HarmonyPatches.Patch_QualityBuilder_pawnCanConstruct).GetMethod("Postfix");
-                    var prefix_getPawnConstructionSkill = typeof(HarmonyPatches.Patch_QualityBuilder_getPawnConstructionSkill).GetMethod("Prefix");
+                    var postfix_pawnCanConstruct = typeof(HarmonyPatches.Patch_QualityBuilder_PawnCanConstruct).GetMethod("Postfix");
+                    var prefix_getPawnConstructionSkill = typeof(HarmonyPatches.Patch_QualityBuilder_GetPawnConstructionSkill).GetMethod("Prefix");
                     this.HarmonyInstance.Patch(QualityBuilder_pawnCanConstruct, null, new HarmonyMethod(postfix_pawnCanConstruct));
                     this.HarmonyInstance.Patch(QualityBuilder_getPawnConstructionSkill, new HarmonyMethod(prefix_getPawnConstructionSkill));
                     Log.Message("Project Rimfactory - Added Support for QualityBuilder");
@@ -239,6 +198,22 @@ namespace ProjectRimFactory.Common
                 }
                 
             }
+            if (ModLister.HasActiveModWithName("Save Our Ship 2"))
+            {
+                try
+                {
+                    var shipInteriorMod2 = Type.GetType("SaveOurShip2.ShipInteriorMod2, ShipsHaveInsides", true);
+                    ModSupport_SOS2_MoveShipFlagGetter = shipInteriorMod2.GetMethod("get_MoveShipFlag", BindingFlags.Public | BindingFlags.Static);
+                    Log.Message("Project Rimfactory - Added Support for Save Our Ship 2");
+                }
+                catch (Exception e)
+                {
+                    Log.Warning("Project Rimfactory - ailed to add Support for Save Our Ship 2");
+                    Log.Error(e.Message);
+                }
+                
+            }
+
 
 
         }

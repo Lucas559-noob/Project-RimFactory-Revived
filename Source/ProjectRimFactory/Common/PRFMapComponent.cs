@@ -1,37 +1,53 @@
 ﻿using ProjectRimFactory.AutoMachineTool;
 using System.Collections.Generic;
-using System.Linq;
+using ProjectRimFactory.SAL3.Things;
 using Verse;
 
 namespace ProjectRimFactory.Common
 {
     public class PRFMapComponent : MapComponent
     {
-        private List<ITicker> tickers = new List<ITicker>();
+        private List<ITicker> tickers = [];
         // iHideRightMenus: see HarmonyPatches/PatchStorage.cs
-        public HashSet<IntVec3> iHideRightMenus = new HashSet<IntVec3>();
+        public HashSet<IntVec3> iHideRightMenus = [];
 
-        public List<Storage.Building_ColdStorage> ColdStorageBuildings = new List<Storage.Building_ColdStorage>();
+        public readonly List<Storage.Building_ColdStorage> ColdStorageBuildings = [];
 
-        private Dictionary<IntVec3, List<HarmonyPatches.IHideItem>> hideItemLocations = new Dictionary<IntVec3, List<HarmonyPatches.IHideItem>>();
+        private readonly Dictionary<IntVec3, List<HarmonyPatches.IHideItem>> hideItemLocations = new();
 
-        private Dictionary<IntVec3, List<HarmonyPatches.IForbidPawnOutputItem>> ForbidPawnOutputItemLocations = new Dictionary<IntVec3, List<HarmonyPatches.IForbidPawnOutputItem>>();
+        private readonly Dictionary<IntVec3, List<HarmonyPatches.IForbidPawnOutputItem>> forbidPawnOutputItemLocations = new();
 
-        private Dictionary<IntVec3, ProjectRimFactory.Storage.Building_AdvancedStorageUnitIOPort> advancedIOLocations = new Dictionary<IntVec3, Storage.Building_AdvancedStorageUnitIOPort>();
+        public Dictionary<IntVec3, Storage.Building_AdvancedStorageUnitIOPort> GetAdvancedIOLocations { get; } = new();
 
-        public Dictionary<IntVec3, ProjectRimFactory.Storage.Building_AdvancedStorageUnitIOPort> GetadvancedIOLocations => advancedIOLocations;
+        public readonly Dictionary<Building_BeltConveyor, IBeltConveyorLinkable> NextBeltCache = new();
+        
+        private readonly List<IRecipeSubscriber> recipeSubscribers = [];
 
-        public Dictionary<Building_BeltConveyor, IBeltConveyorLinkable> NextBeltCache = new Dictionary<Building_BeltConveyor, IBeltConveyorLinkable>();
+        public void RegisterRecipeSubscriber(IRecipeSubscriber recipeSubscriber)
+        {
+            recipeSubscribers.Add(recipeSubscriber);
+        }
+        public void DeregisterRecipeSubscriber(IRecipeSubscriber recipeSubscriber)
+        {
+            recipeSubscribers.Remove(recipeSubscriber);
+        }
+        public void NotifyRecipeSubscriberOfProvider(IntVec3 pos, Building_RecipeHolder recipeHolder)
+        {
+            foreach (var subscriber in recipeSubscribers)
+            {
+                subscriber.RecipeProviderSpawnedAt(pos, recipeHolder);
+            }
+        }
 
 
-        public void RegisterColdStorageBuilding(ProjectRimFactory.Storage.Building_ColdStorage port)
+        public void RegisterColdStorageBuilding(Storage.Building_ColdStorage port)
         {
             if (!ColdStorageBuildings.Contains(port))
             {
                 ColdStorageBuildings.Add(port);
             }
         }
-        public void DeRegisterColdStorageBuilding(ProjectRimFactory.Storage.Building_ColdStorage port)
+        public void DeRegisterColdStorageBuilding(Storage.Building_ColdStorage port)
         {
             if (ColdStorageBuildings.Contains(port))
             {
@@ -42,18 +58,15 @@ namespace ProjectRimFactory.Common
 
 
 
-        public void RegisteradvancedIOLocations(IntVec3 pos, ProjectRimFactory.Storage.Building_AdvancedStorageUnitIOPort port)
+        public void RegisteradvancedIOLocations(IntVec3 pos, Storage.Building_AdvancedStorageUnitIOPort port)
         {
-            if (!advancedIOLocations.ContainsKey(pos))
-            {
-                advancedIOLocations.Add(pos, port);
-            }
+            GetAdvancedIOLocations.TryAdd(pos, port);
         }
         public void DeRegisteradvancedIOLocations(IntVec3 pos)
         {
-            if (advancedIOLocations.ContainsKey(pos))
+            if (GetAdvancedIOLocations.ContainsKey(pos))
             {
-                advancedIOLocations.Remove(pos);
+                GetAdvancedIOLocations.Remove(pos);
             }
 
         }
@@ -66,7 +79,7 @@ namespace ProjectRimFactory.Common
             }
             else
             {
-                hideItemLocations.Add(pos, new List<HarmonyPatches.IHideItem>() { hideItem });
+                hideItemLocations.Add(pos, [hideItem]);
             }
         }
         public void DeRegisterIHideItemPos(IntVec3 pos, HarmonyPatches.IHideItem hideItem)
@@ -81,34 +94,33 @@ namespace ProjectRimFactory.Common
             }
 
         }
-        public void RegisterIForbidPawnOutputItem(IntVec3 pos, HarmonyPatches.IForbidPawnOutputItem ForbidPawnOutput)
+        public void RegisterIForbidPawnOutputItem(IntVec3 pos, HarmonyPatches.IForbidPawnOutputItem forbidPawnOutput)
         {
-            if (ForbidPawnOutputItemLocations.ContainsKey(pos))
+            if (forbidPawnOutputItemLocations.ContainsKey(pos))
             {
-                ForbidPawnOutputItemLocations[pos].Add(ForbidPawnOutput);
+                forbidPawnOutputItemLocations[pos].Add(forbidPawnOutput);
             }
             else
             {
-                ForbidPawnOutputItemLocations.Add(pos, new List<HarmonyPatches.IForbidPawnOutputItem>() { ForbidPawnOutput });
+                forbidPawnOutputItemLocations.Add(pos, [forbidPawnOutput]);
             }
         }
-        public void DeRegisterIForbidPawnOutputItem(IntVec3 pos, HarmonyPatches.IForbidPawnOutputItem ForbidPawnOutput)
+        public void DeRegisterIForbidPawnOutputItem(IntVec3 pos, HarmonyPatches.IForbidPawnOutputItem forbidPawnOutput)
         {
-            if (ForbidPawnOutputItemLocations[pos].Count <= 1)
+            if (forbidPawnOutputItemLocations[pos].Count <= 1)
             {
-                ForbidPawnOutputItemLocations.Remove(pos);
+                forbidPawnOutputItemLocations.Remove(pos);
             }
             else
             {
-                ForbidPawnOutputItemLocations[pos].Remove(ForbidPawnOutput);
+                forbidPawnOutputItemLocations[pos].Remove(forbidPawnOutput);
             }
 
         }
 
-        public List<HarmonyPatches.IHideItem> CheckIHideItemPos(IntVec3 pos)
+        private List<HarmonyPatches.IHideItem> CheckIHideItemPos(IntVec3 pos)
         {
-            if (hideItemLocations.ContainsKey(pos)) return hideItemLocations[pos];
-            return null;
+            return hideItemLocations.GetValueOrDefault(pos);
         }
 
         public bool ShouldHideItemsAtPos(IntVec3 pos)
@@ -116,10 +128,9 @@ namespace ProjectRimFactory.Common
             return CheckIHideItemPos(pos)?.Any(t => t.HideItems) ?? false;
         }
 
-        public List<HarmonyPatches.IForbidPawnOutputItem> CheckIForbidPawnOutputItem(IntVec3 pos)
+        private List<HarmonyPatches.IForbidPawnOutputItem> CheckIForbidPawnOutputItem(IntVec3 pos)
         {
-            if (ForbidPawnOutputItemLocations.ContainsKey(pos)) return ForbidPawnOutputItemLocations[pos];
-            return null;
+            return forbidPawnOutputItemLocations.GetValueOrDefault(pos);
         }
 
         public bool ShouldForbidPawnOutputAtPos(IntVec3 pos)
@@ -135,17 +146,17 @@ namespace ProjectRimFactory.Common
         public override void MapComponentTick()
         {
             base.MapComponentTick();
-            this.tickers.ForEach(t => t.Tick());
+            tickers.ForEach(t => t.Tick());
         }
 
         public void AddTicker(ITicker ticker)
         {
-            this.tickers.Add(ticker);
+            tickers.Add(ticker);
         }
 
         public void RemoveTicker(ITicker ticker)
         {
-            this.tickers.Remove(ticker);
+            tickers.Remove(ticker);
         }
         public void AddIHideRightClickMenu(Building b)
         {

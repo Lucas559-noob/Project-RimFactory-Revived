@@ -6,31 +6,28 @@ namespace ProjectRimFactory.CultivatorTools
 {
     public abstract class Building_SquareCellIterator : Building_CellIterator
     {
-        public SquareCellIterator iter;
+        protected SquareCellIterator Iter;
 
-        public override IntVec3 Current => iter.cellPattern[currentPosition] + Position;
+        protected override IntVec3 Current => Iter.CellPattern[CurrentPosition] + Position;
 
-        Cache<List<IntVec3>> selectedCellsCache;
-        List<IntVec3> UpdateCellsCache()
+        private Cache<List<IntVec3>> selectedCellsCache;
+
+        private List<IntVec3> UpdateCellsCache()
         {
-            int squareAreaRadius = def.GetModExtension<CultivatorDefModExtension>().squareAreaRadius;
-            List<IntVec3> list = new List<IntVec3>((squareAreaRadius * 2 + 1) * (squareAreaRadius * 2 + 1));
-            for (int i = -squareAreaRadius; i <= squareAreaRadius; i++)
+            var squareAreaRadius = CultivatorDefModExtension.squareAreaRadius;
+            var list = new List<IntVec3>((squareAreaRadius * 2 + 1) * (squareAreaRadius * 2 + 1));
+            for (var i = -squareAreaRadius; i <= squareAreaRadius; i++)
             {
-                for (int j = -squareAreaRadius; j <= squareAreaRadius; j++)
+                for (var j = -squareAreaRadius; j <= squareAreaRadius; j++)
                 {
                     list.Add(new IntVec3(i, 0, j) + Position);
                 }
             }
             return list;
         }
-        public List<IntVec3> CellsInRange
-        {
-            get
-            {
-                return selectedCellsCache.Get();
-            }
-        }
+
+        private List<IntVec3> CellsInRange => selectedCellsCache.Get();
+
         public override void DrawExtraSelectionOverlays()
         {
             base.DrawExtraSelectionOverlays();
@@ -41,11 +38,11 @@ namespace ProjectRimFactory.CultivatorTools
         public override void SpawnSetup(Map map, bool respawningAfterLoad)
         {
             base.SpawnSetup(map, respawningAfterLoad);
-            iter = new SquareCellIterator(def.GetModExtension<CultivatorDefModExtension>().squareAreaRadius);
+            Iter = new SquareCellIterator(CultivatorDefModExtension.squareAreaRadius);
             selectedCellsCache = new Cache<List<IntVec3>>(UpdateCellsCache);
         }
 
-        protected override int cellCount => iter.cellPattern.Length;
+        protected override int CellCount => Iter.CellPattern.Length;
 
     }
 }

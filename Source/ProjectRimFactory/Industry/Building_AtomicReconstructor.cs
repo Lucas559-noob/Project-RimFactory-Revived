@@ -9,26 +9,19 @@ namespace ProjectRimFactory.Industry
     public class Building_AtomicReconstructor : Building
     {
         private ThingDef thingToGenerate;
-        public int progressTicks;
+        private int progressTicks;
         public int speedFactor = 1; // fuel consumption = efficiencyFactor^2
-        CompPowerTrader powerComp;
-        CompRefuelable refuelableComp;
-        CompOutputAdjustable outputComp;
+        private CompPowerTrader powerComp;
+        private CompRefuelable refuelableComp;
+        private CompOutputAdjustable outputComp;
 
-        public int PaperclipConsumptionFactor
+        public int PaperclipConsumptionFactor => speedFactor * speedFactor;
+
+        private int TotalWorkRequired
         {
             get
             {
-                return speedFactor * speedFactor;
-            }
-        }
-
-        public int TotalWorkRequired
-        {
-            get
-            {
-                if (ThingToGenerate == null)
-                    return 0;
+                if (ThingToGenerate == null) return 0;
                 return Mathf.RoundToInt(StatDefOf.MarketValue.Worker.GetValue(StatRequest.For(ThingToGenerate, null)) * 100 * 2); // 2 work per $0.01
             }
         }
@@ -37,8 +30,7 @@ namespace ProjectRimFactory.Industry
         {
             get
             {
-                if (ThingToGenerate == null)
-                    return 0;
+                if (ThingToGenerate == null) return 0;
                 return ThingToGenerate.PaperclipAmount() * PaperclipConsumptionFactor;
             }
         }
@@ -47,34 +39,18 @@ namespace ProjectRimFactory.Industry
         {
             get
             {
-                if (ThingToGenerate == null)
-                    return 0;
+                if (ThingToGenerate == null) return 0;
                 return (ItemBaseCost * speedFactor) / TotalWorkRequired;
             }
         }
 
-        public string ProgressToStringPercent
-        {
-            get
-            {
-                return ThingToGenerate == null ? 0f.ToStringPercent() : (progressTicks / (float)TotalWorkRequired).ToStringPercent();
-            }
-        }
+        public string ProgressToStringPercent => ThingToGenerate == null ? 0f.ToStringPercent() : (progressTicks / (float)TotalWorkRequired).ToStringPercent();
 
-        public string EstimatedProductionTimeLeftPeriod
-        {
-            get
-            {
-                return ((TotalWorkRequired - progressTicks) / speedFactor).ToStringTicksToPeriod();
-            }
-        }
+        public string EstimatedProductionTimeLeftPeriod => ((TotalWorkRequired - progressTicks) / speedFactor).ToStringTicksToPeriod();
 
         public ThingDef ThingToGenerate
         {
-            get
-            {
-                return thingToGenerate;
-            }
+            get => thingToGenerate;
             set
             {
                 thingToGenerate = value;
@@ -97,33 +73,28 @@ namespace ProjectRimFactory.Industry
             outputComp = GetComp<CompOutputAdjustable>();
         }
 
-        public override void Tick()
+        protected override void Tick()
         {
             base.Tick();
-            if (powerComp.PowerOn)
+            if (!Spawned || !powerComp.PowerOn || ThingToGenerate is null) return;
+            var fuel = refuelableComp.Fuel;
+            if (fuel >= FuelConsumptionPerTick)
             {
-                if (ThingToGenerate != null)
+                refuelableComp.ConsumeFuel(FuelConsumptionPerTick);
+                progressTicks += speedFactor;
+                if (progressTicks >= TotalWorkRequired)
                 {
-                    float fuel = refuelableComp.Fuel;
-                    if (fuel >= FuelConsumptionPerTick)
-                    {
-                        refuelableComp.ConsumeFuel(FuelConsumptionPerTick);
-                        progressTicks += speedFactor;
-                        if (progressTicks >= TotalWorkRequired)
-                        {
-                            Thing thing = ThingMaker.MakeThing(ThingToGenerate);
-                            GenPlace.TryPlaceThing(thing, outputComp.CurrentCell, Map, ThingPlaceMode.Near);
-                            progressTicks = 0;
-                        }
-                    }
+                    var thing = ThingMaker.MakeThing(ThingToGenerate);
+                    GenPlace.TryPlaceThing(thing, outputComp.CurrentCell, Map, ThingPlaceMode.Near);
+                    progressTicks = 0;
                 }
             }
         }
 
         public override string GetInspectString()
         {
-            StringBuilder builder = new StringBuilder();
-            string str = base.GetInspectString();
+            var builder = new StringBuilder();
+            var str = base.GetInspectString();
             if (!string.IsNullOrEmpty(str))
             {
                 builder.AppendLine(str);

@@ -74,7 +74,7 @@ namespace ProjectRimFactory.Common
             TooltipHandler.TipRegion(rect, "PRF_Settings_C_Patches_Reachability_CanReach_ToolTip".Translate());
             Widgets.CheckboxLabeled(rect, "PRF_Settings_C_Patches_Reachability_CanReach".Translate(), ref PRF_Patch_Reachability_CanReach);
             list.Gap();
-            ConditionalPatchHelper.Patch_Reachability_CanReach.PatchHandler(ProjectRimFactory_ModSettings.PRF_Patch_Reachability_CanReach);
+            ConditionalPatchHelper.PatchReachabilityCanReach.PatchHandler(ProjectRimFactory_ModSettings.PRF_Patch_Reachability_CanReach);
 
             AddHeader(list, "PRF_Settings_GeneralOptions_Header".Translate());
 
@@ -85,6 +85,15 @@ namespace ProjectRimFactory.Common
             }
             TooltipHandler.TipRegion(rect, "PRF_Settings_GeneralOptions_DSU_UseFuzzySearch_ToolTip".Translate());
             Widgets.CheckboxLabeled(rect, "PRF_Settings_GeneralOptions_DSU_UseFuzzySearch".Translate(), ref PRF_UseFuzzySearch);
+            list.Gap();
+            
+            rect = list.GetRect(20);
+            if (Mouse.IsOver(rect))
+            {
+                Widgets.DrawHighlight(rect);
+            }
+            TooltipHandler.TipRegion(rect, "PRF_Settings_GeneralOptions_PlaceConveyorCable_ToolTip".Translate());
+            Widgets.CheckboxLabeled(rect, "PRF_Settings_GeneralOptions_PlaceConveyorCable".Translate(), ref PRF_PlaceConveyorCable);
             list.Gap();
 
 
@@ -113,6 +122,7 @@ namespace ProjectRimFactory.Common
         private static bool PRF_LiteMode_last = false;
         public static bool PRF_Patch_Reachability_CanReach = false;
         public static bool PRF_UseFuzzySearch = true;
+        public static bool PRF_PlaceConveyorCable = true;
 
         public override void ExposeData()
         {
@@ -122,6 +132,7 @@ namespace ProjectRimFactory.Common
             Scribe_Values.Look(ref PRF_LiteMode, "PRF_LiteMode", false);
             Scribe_Values.Look(ref PRF_Patch_Reachability_CanReach, "PRF_Patch_Reachability_CanReach", false);
             Scribe_Values.Look(ref PRF_UseFuzzySearch, "PRF_UseFuzzySearch", true);
+            Scribe_Values.Look(ref PRF_PlaceConveyorCable, "PRF_PlaceConveyorCable", true);
             PRF_LiteMode_last = PRF_LiteMode;
         }
 
@@ -647,7 +658,7 @@ namespace ProjectRimFactory.Common
             var rectSlider = rect.RightHalf();
             rectSlider.xMin += 20;
             rectSlider.xMax -= 20;
-            this.currentValue = Widgets.HorizontalSlider_NewTemp(rectSlider, this.currentValue, this.minValue, this.maxValue, true, this.currentValue.ToString(), this.minValue.ToString(), this.maxValue.ToString(), this.roundTo);
+            this.currentValue = Widgets.HorizontalSlider(rectSlider, this.currentValue, this.minValue, this.maxValue, true, this.currentValue.ToString(), this.minValue.ToString(), this.maxValue.ToString(), this.roundTo);
             list.Gap(list.verticalSpacing);
         }
     }
@@ -670,7 +681,7 @@ namespace ProjectRimFactory.Common
             var rectSlider = rect.RightHalf();
             rectSlider.xMin += 20;
             rectSlider.xMax -= 20;
-            this.currentValue = (int)Widgets.HorizontalSlider_NewTemp(rectSlider, this.currentValue, this.minValue, this.maxValue, true, this.currentValue.ToString(), this.minValue.ToString(), this.maxValue.ToString(), this.roundTo);
+            this.currentValue = (int)Widgets.HorizontalSlider(rectSlider, this.currentValue, this.minValue, this.maxValue, true, this.currentValue.ToString(), this.minValue.ToString(), this.maxValue.ToString(), this.roundTo);
             list.Gap(list.verticalSpacing);
         }
     }

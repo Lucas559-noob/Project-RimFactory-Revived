@@ -11,28 +11,33 @@ namespace ProjectRimFactory.Common.HarmonyPatches
     /// Prevent the Player from Reserving a Startion that has a SAL Setup
     /// </summary>
     [HarmonyPatch(typeof(ReservationUtility), "CanReserve")]
+    // ReSharper disable once InconsistentNaming
     class Patch_CanReserve_SAL
     {
 
+        // ReSharper disable once UnusedMember.Local
         static void Postfix(Pawn p, LocalTargetInfo target, bool ignoreOtherReservations, ref bool __result)
         {
-            if (__result == true && ignoreOtherReservations == true)
+            if (__result && ignoreOtherReservations)
             {
-                if (target.HasThing && target.Thing != null && p != null && p != PRFGameComponent.PRF_StaticPawn)
+                if (target is { HasThing: true, Thing: not null } && p != null && p != PRFGameComponent.PRF_StaticPawn)
                 {
-                    Building_AutoMachineTool building = (Building_AutoMachineTool)target.Thing.InteractionCell.GetThingList(p.Map).Where(t => t is Building_AutoMachineTool).FirstOrDefault();
+                    var thing = target.Thing;
+                    if (thing is Pawn)
+                    {
+                        // SAL do not work on Pawns
+                        return;
+                    }
+                    var interact = thing.InteractionCell;
+                    var thingList = interact.GetThingList(p.Map);
+                    
+                    var building = (Building_AutoMachineTool)thingList.FirstOrDefault(t => t is Building_AutoMachineTool);
                     if (building != null)
                     {
                         __result = false;
                     }
-
                 }
-
-
-
             }
-
-
         }
     }
 }

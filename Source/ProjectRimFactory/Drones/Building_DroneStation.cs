@@ -11,172 +11,19 @@ using Verse.AI;
 
 namespace ProjectRimFactory.Drones
 {
-
-    //This is basicly a clone of Area_Allowed it was created since the former one is limited to 10 in vanilla RimWorld
-    public class DroneArea : Area
-    {
-        private string labelInt;
-
-        public DroneArea()
-        {
-        }
-
-
-
-        public DroneArea(AreaManager areaManager, string label = null) : base(areaManager)
-        {
-            base.areaManager = areaManager;
-            if (!label.NullOrEmpty())
-            {
-                labelInt = label;
-            }
-            else
-            {
-                int num = 1;
-                while (true)
-                {
-                    labelInt = "AreaDefaultLabel".Translate(num);
-                    if (areaManager.GetLabeled(labelInt) == null)
-                    {
-                        break;
-                    }
-                    num++;
-                }
-            }
-            colorInt = new Color(Rand.Value, Rand.Value, Rand.Value);
-            colorInt = Color.Lerp(colorInt, Color.gray, 0.5f);
-        }
-
-
-        private Color colorInt = Color.red;
-
-        private string LabelText = "DroneZone";
-
-        public override string Label => LabelText;
-
-        public override Color Color => colorInt;
-
-        public override int ListPriority => 3000;
-
-        private bool mutable = false;
-
-        public override bool Mutable => mutable;
-
-        public void SetMutable(bool val)
-        {
-            mutable = val;
-        }
-
-        public override string GetUniqueLoadID()
-        {
-            return "Area_" + ID + "_DroneArea";
-        }
-
-        public override void ExposeData()
-        {
-            //IL_0025: Unknown result type (might be due to invalid IL or missing references)
-            //IL_002b: Unknown result type (might be due to invalid IL or missing references)
-            base.ExposeData();
-            Scribe_Values.Look(ref labelInt, "label");
-            Scribe_Values.Look(ref colorInt, "color");
-        }
-
-    }
-
-
-    //This Class is used for the Area Selection for Drones where the range is unlimeted (0)
-    public class DroneAreaSelector : Designator
-    {
-        //Content is mostly a copy of Designator_AreaAllowedExpand
-
-        private static Area selectedArea;
-
-        public Action<Area> selectAction;
-
-        public static Area SelectedArea => selectedArea;
-
-
-
-
-        public override AcceptanceReport CanDesignateCell(IntVec3 loc)
-        {
-            return loc.InBounds(base.Map) && Designator_AreaAllowed.SelectedArea != null && !Designator_AreaAllowed.SelectedArea[loc];
-            //throw new NotImplementedException();
-        }
-        public override void SelectedUpdate()
-        {
-            //    Log.Message("SelectedUpdate");
-        }
-
-        public override void ProcessInput(Event ev)
-        {
-            if (CheckCanInteract())
-            {
-                if (selectedArea != null)
-                {
-                    //base.ProcessInput(ev);
-                }
-                AreaUtility.MakeAllowedAreaListFloatMenu(delegate (Area a)
-                {
-                    selectedArea = a;
-                    // base.ProcessInput(ev);
-
-                    /*
-                    selectedArea == null --> Unrestricted
-                    selectedArea != null --> User Area
-                     */
-                    selectAction(selectedArea);
-
-                }, addNullAreaOption: true, addManageOption: false, base.Map);
-            }
-        }
-        //public static void ClearSelectedArea()
-        //{
-        //    selectedArea = null;
-        //}
-        //protected override void FinalizeDesignationSucceeded()
-        //{
-        //    base.FinalizeDesignationSucceeded();
-        //    PlayerKnowledgeDatabase.KnowledgeDemonstrated(ConceptDefOf.AllowedAreas, KnowledgeAmount.SpecificInteraction);
-        //}
-    }
-
-
-
+    
     [StaticConstructorOnStartup]
     public abstract class Building_DroneStation : Building, IPowerSupplyMachineHolder, IDroneSeetingsITab, IPRF_SettingsContentLink
     {
         //Sleep Time List (Loaded on Spawn)
-        public string[] cachedSleepTimeList;
+        protected int[] CachedSleepTimeList;
 
-        private const int defaultSkillLevel = 20;
+        protected CompRefuelable RefuelableComp;
 
-        public int GetdefaultSkillLevel
-        {
-            get
-            {
-                return defaultSkillLevel;
-            }
-        }
+        public List<SkillRecord> GetDroneSkillsRecord { get; set; } = [];
 
-        protected CompRefuelable refuelableComp;
-
-        private List<SkillRecord> droneSkillsRecord = new List<SkillRecord>();
-
-        public List<SkillRecord> GetDroneSkillsRecord
-        {
-            get
-            {
-                return droneSkillsRecord;
-            }
-            set
-            {
-                droneSkillsRecord = value;
-            }
-        }
-
-        //Return the Range depending on the Active Defenition
-        public int DroneRange
+        //Return the Range depending on the Active Definition
+        private int DroneRange
         {
             get
             {
@@ -184,232 +31,189 @@ namespace ProjectRimFactory.Drones
                 {
                     return (int)Math.Ceiling(compPowerWorkSetting.GetRange());
                 }
-                else
-                {
-                    return def.GetModExtension<DefModExtension_DroneStation>().SquareJobRadius;
-                }
+                DefModExtensionDroneStation ??= def.GetModExtension<DefModExtension_DroneStation>();
+                return DefModExtensionDroneStation.SquareJobRadius;
             }
-
         }
-
-
-
+        
         private CompPowerWorkSetting compPowerWorkSetting;
+        internal ModExtension_Skills ModExtensionDroneSkills;
 
-        public IEnumerable<IntVec3> StationRangecells
+        private IEnumerable<IntVec3> StationRangeCells
         {
             get
             {
-                if (compPowerWorkSetting != null && compPowerWorkSetting.RangeSetting)
+                if (compPowerWorkSetting is { RangeSetting: true })
                 {
                     return compPowerWorkSetting.GetRangeCells();
                 }
-                else
-                {
-                    return GenAdj.OccupiedRect(this).ExpandedBy(DroneRange).Cells;
-                }
+                return this.OccupiedRect().ExpandedBy(DroneRange).Cells;
             }
         }
-        private IEnumerable<IntVec3> StationRangecells_old;
+        private IEnumerable<IntVec3> stationRangeCellsOld;
 
-        public List<IntVec3> cashed_GetCoverageCells = null;
+        protected List<IntVec3> CashedGetCoverageCells;
 
-        //droneAllowedArea Loaded on Spawn | this is ithe zone where the DronePawns are allowed to move in
+        //DroneAllowedArea Loaded on Spawn | this is the zone where the DronePawns are allowed to move in
         //This needs to be "Area" as one can cast "DroneArea" to "Area" but not the other way around
         //That feature is needed to assign vanilla Allowed Areas
         //Please note that for Area Null is a valid Value. it stands for unrestricted
-        public Area droneAllowedArea = null;
+        public Area DroneAllowedArea;
 
-        public DroneArea GetDroneAllowedArea
+        private DroneArea GetDroneAllowedArea
         {
             get
             {
-                DroneArea droneArea = null;
-                if (DroneRange > 0)
+                if (DroneRange <= 0) return null;
+                var droneArea = new DroneArea(Map.areaManager);
+                //Need to set the Area to a size
+
+                foreach (var cell in StationRangeCells)
                 {
-                    droneArea = new DroneArea(this.Map.areaManager);
-                    //Need to set the Area to a size
-
-                    foreach (IntVec3 cell in StationRangecells)
-                    {
-                        if (cell.InBounds(this.Map)) droneArea[cell] = true;
-                    }
-
-                    //Not shure if i need that but just to be shure
-                    droneArea[Position] = true;
-                    this.Map.areaManager.AllAreas.Add(droneArea);
+                    if (cell.InBounds(Map)) droneArea[cell] = true;
                 }
 
+                //Not sure if I need that but just to be sure
+                droneArea[Position] = true;
+                Map.areaManager.AllAreas.Add(droneArea);
 
                 return droneArea;
-
             }
         }
 
         //This function can be used to Update the Allowed area for all Drones (Active and future)
         //Just need to auto call tha on Change from CompPowerWorkSetting
-        public void Update_droneAllowedArea_forDrones(Area dr)
+        private void Update_droneAllowedArea_forDrones(Area dr)
         {
             //Refresh area if current is null
-            droneAllowedArea = dr ?? (Area)GetDroneAllowedArea;
+            DroneAllowedArea = dr ?? GetDroneAllowedArea;
 
-            if (!StationRangecells_old.SequenceEqual(StationRangecells))
+            if (!stationRangeCellsOld.SequenceEqual(StationRangeCells))
             {
-                ((DroneArea)droneAllowedArea).SetMutable(true);
-                droneAllowedArea.Delete();
+                ((DroneArea)DroneAllowedArea).SetMutable(true);
+                DroneAllowedArea.Delete();
 
-                droneAllowedArea = (Area)GetDroneAllowedArea;
-                StationRangecells_old = StationRangecells;
+                DroneAllowedArea = GetDroneAllowedArea;
+                stationRangeCellsOld = StationRangeCells;
             }
 
-            for (int i = 0; i < spawnedDrones.Count; i++)
+            for (var i = 0; i < SpawnedDrones.Count; i++)
             {
-                spawnedDrones[i].playerSettings.AreaRestriction = droneAllowedArea;
+                SpawnedDrones[i].playerSettings.AreaRestrictionInPawnCurrentMap = DroneAllowedArea;
             }
         }
 
-        public static readonly Texture2D Cancel = ContentFinder<Texture2D>.Get("UI/Designators/Cancel", true);
-        protected bool lockdown;
-        private string droneAreaSelectorLable = "PRFDroneStationSelectArea".Translate("PRFDroneStationUnrestricted".Translate());
-        protected DefModExtension_DroneStation extension;
-        protected List<Pawn_Drone> spawnedDrones = new List<Pawn_Drone>();
+        private static readonly Texture2D Cancel = ContentFinder<Texture2D>.Get("UI/Designators/Cancel");
+        private bool lockdown;
+        private string droneAreaSelectorLabel = "PRFDroneStationSelectArea".Translate("PRFDroneStationUnrestricted".Translate());
+        protected DefModExtension_DroneStation DefModExtensionDroneStation;
+        protected List<Pawn_Drone> SpawnedDrones = [];
 
-        public abstract int DronesLeft { get; }
+        protected abstract int DronesLeft { get; }
 
-        public IPowerSupplyMachine RangePowerSupplyMachine => this.GetComp<CompPowerWorkSetting>();
+        public IPowerSupplyMachine RangePowerSupplyMachine => compPowerWorkSetting;
 
-        public Dictionary<WorkTypeDef, bool> WorkSettings = new Dictionary<WorkTypeDef, bool>();
+        protected Dictionary<WorkTypeDef, bool> WorkSettings = new();
 
         public Dictionary<WorkTypeDef, bool> GetWorkSettings
         {
-            get
-            {
-                return WorkSettings;
-            }
-            set
-            {
-                WorkSettings = value;
-            }
+            get => WorkSettings;
+            set => WorkSettings = value;
         }
 
-        public List<SkillRecord> DroneSeetings_skillDefs => droneSkillsRecord;
+        public List<SkillRecord> DroneSettingsSkillDefs => GetDroneSkillsRecord;
+        public string[] GetSleepTimeList { get; private set; }
 
-        public string[] GetSleepTimeList => cachedSleepTimeList;
-
-        public CompRefuelable compRefuelable => GetComp<CompRefuelable>();
-
-        public void UpdateDronePrioritys()
-        {
-
-            if (spawnedDrones.Count > 0)
-            {
-                foreach (Pawn pawn in spawnedDrones)
-                {
-                    foreach (WorkTypeDef def in WorkSettings.Keys)
-                    {
-                        if (WorkSettings[def])
-                        {
-                            pawn.workSettings.SetPriority(def, 3);
-                        }
-                        else
-                        {
-                            pawn.workSettings.SetPriority(def, 0);
-                        }
-                    }
-                }
-
-            }
-        }
+        public CompRefuelable CompRefuelable => RefuelableComp;
 
         // Used for destroyed pawns
-        public abstract void Notify_DroneLost();
+        protected abstract void Notify_DroneLost();
         // Used to negate imaginary pawns despawned in WorkGiverDroneStations and JobDriver_ReturnToStation
         public abstract void Notify_DroneGained();
 
         public override void PostMake()
         {
             base.PostMake();
-            extension = def.GetModExtension<DefModExtension_DroneStation>();
-            refuelableComp = GetComp<CompRefuelable>();
+            DefModExtensionDroneStation = def.GetModExtension<DefModExtension_DroneStation>();
+            RefuelableComp = GetComp<CompRefuelable>();
             compPowerTrader = GetComp<CompPowerTrader>();
             compPowerWorkSetting = GetComp<CompPowerWorkSetting>();
         }
 
-        private MapTickManager mapManager;
-        protected MapTickManager MapManager => this.mapManager;
+        private MapTickManager MapManager { get; set; }
 
         IPRF_SettingsContent IPRF_SettingsContentLink.PRF_SettingsContentOb => new ITab_DroneStation_Def(this);
 
         public override void SpawnSetup(Map map, bool respawningAfterLoad)
         {
             base.SpawnSetup(map, respawningAfterLoad);
-            this.mapManager = map.GetComponent<MapTickManager>();
-            refuelableComp = GetComp<CompRefuelable>();
+            MapManager = map.GetComponent<MapTickManager>();
+            RefuelableComp = GetComp<CompRefuelable>();
             compPowerTrader = GetComp<CompPowerTrader>();
-            extension = def.GetModExtension<DefModExtension_DroneStation>();
+            DefModExtensionDroneStation = def.GetModExtension<DefModExtension_DroneStation>();
+            ModExtensionDroneSkills = def.GetModExtension<ModExtension_Skills>();
             compPowerWorkSetting = GetComp<CompPowerWorkSetting>();
-            StationRangecells_old = StationRangecells;
-            //Setup Allowd Area
-            //Enssuring that Update_droneAllowedArea_forDrones() is run resolves #224 (May need to add a diffrent check)
-            if (droneAllowedArea == null)
+            stationRangeCellsOld = StationRangeCells;
+            //Setup Allowed Area
+            //Ensuring that Update_droneAllowedArea_forDrones() is run resolves #224 (May need to add a different check)
+            if (DroneAllowedArea == null)
             {
                 //Log.Message("droneAllowedArea was null");
-                Update_droneAllowedArea_forDrones(droneAllowedArea);
+                Update_droneAllowedArea_forDrones(DroneAllowedArea);
             }
             //Load the SleepTimes from XML
-            cachedSleepTimeList = extension.Sleeptimes.Split(',');
+            CachedSleepTimeList = DefModExtensionDroneStation.GetSleepTimesInt();
+            GetSleepTimeList = DefModExtensionDroneStation.GetSleepTimesString();
 
-            cashed_GetCoverageCells = StationRangecells.ToList();
+            CashedGetCoverageCells = StationRangeCells.ToList();
 
             //Check for missing WorkTypeDef
-            foreach (WorkTypeDef def in extension.workTypes.Except(WorkSettings.Keys).ToList())
+            foreach (var workTypeDef in DefModExtensionDroneStation.workTypes.Except(WorkSettings.Keys).ToList())
             {
-                WorkSettings.Add(def, true);
+                WorkSettings.Add(workTypeDef, true);
             }
-            //Remove stuff thats nolonger valid (can only happen after updates)
-            foreach (WorkTypeDef def in WorkSettings.Keys.Except(extension.workTypes).ToList())
+            //Remove stuff that's no longer valid (can only happen after updates)
+            foreach (var workTypeDef in WorkSettings.Keys.Except(DefModExtensionDroneStation.workTypes).ToList())
             {
-                WorkSettings.Remove(def);
+                WorkSettings.Remove(workTypeDef);
             }
             //need to take action to init droneSkillsRecord
-            if (droneSkillsRecord.Count == 0)
+            if (GetDroneSkillsRecord.Count == 0)
             {
-                Pawn_Drone drone = MakeDrone();
+                var drone = MakeDrone();
                 GenSpawn.Spawn(drone, Position, Map);
                 drone.Destroy();
 
-                GetComp<CompRefuelable>()?.Refuel(1);
+                RefuelableComp?.Refuel(1);
 
             }
             //Init the Designator default Label
-            update_droneAreaSelectorLable(droneAllowedArea);
+            update_droneAreaSelectorLabel(DroneAllowedArea);
 
-            //Need this type of call to set the Powerconsumption on load
+            //Need this type of call to set the Power consumption on load
             //A normal call will not work
-            var rangePowerSupplyMachine = this.RangePowerSupplyMachine;
-            if (rangePowerSupplyMachine != null)
-            {
-                this.MapManager.NextAction(rangePowerSupplyMachine.RefreshPowerStatus);
-                this.MapManager.AfterAction(5, rangePowerSupplyMachine.RefreshPowerStatus);
-            }
+            var rangePowerSupplyMachine = RangePowerSupplyMachine;
+            if (rangePowerSupplyMachine == null) return;
+            MapManager.NextAction(rangePowerSupplyMachine.RefreshPowerStatus);
+            MapManager.AfterAction(5, rangePowerSupplyMachine.RefreshPowerStatus);
         }
 
-        private void update_droneAreaSelectorLable(Area a)
+        private void update_droneAreaSelectorLabel(Area area)
         {
-            if (a == null)
+            if (area is null)
             {
-                droneAreaSelectorLable = "PRFDroneStationSelectArea".Translate("PRFDroneStationUnrestricted".Translate());
+                droneAreaSelectorLabel = "PRFDroneStationSelectArea".Translate("PRFDroneStationUnrestricted".Translate());
+                return;
             }
-            else
-            {
-                droneAreaSelectorLable = "PRFDroneStationSelectArea".Translate(a.Label);
-            }
+
+            droneAreaSelectorLabel = "PRFDroneStationSelectArea".Translate(area.Label);
         }
 
-        public override void Draw()
+        public override void DynamicDrawPhaseAt(DrawPhase phase, Vector3 drawLoc, bool flip = false)
         {
-            base.Draw();
-            if (extension.displayDormantDrones)
+            base.DynamicDrawPhaseAt(phase, drawLoc, flip);
+            if (phase != DrawPhase.Draw) return; //Crashes when drawing 2 things at the same time in some of the other phases
+            if (DefModExtensionDroneStation.displayDormantDrones)
             {
                 DrawDormantDrones();
             }
@@ -417,29 +221,27 @@ namespace ProjectRimFactory.Drones
 
         public override void DeSpawn(DestroyMode mode = DestroyMode.Vanish)
         {
-            base.DeSpawn();
-            List<Pawn_Drone> drones = spawnedDrones.ToList();
-            for (int i = 0; i < drones.Count; i++)
+            base.DeSpawn(mode);
+            var drones = SpawnedDrones.ToList();
+            for (var i = 0; i < drones.Count; i++)
             {
                 drones[i].Destroy();
             }
-            if (droneAllowedArea is DroneArea)
+            if (DroneAllowedArea is DroneArea droneArea)
             {
-                //Deleate the old Zone
-                ((DroneArea)droneAllowedArea).SetMutable(true);
-                droneAllowedArea.Delete();
+                //Delete the old Zone
+                droneArea.SetMutable(true);
+                droneArea.Delete();
             }
-
-            droneAllowedArea = null;
-
-
+            DroneAllowedArea = null;
         }
 
-        public virtual void DrawDormantDrones()
+        protected virtual void DrawDormantDrones()
         {
-            foreach (IntVec3 cell in GenAdj.CellsOccupiedBy(this).Take(DronesLeft))
+            foreach (var cell in GenAdj.CellsOccupiedBy(this).Take(DronesLeft))
             {
-                PRFDefOf.PRFDrone.graphic.DrawFromDef(cell.ToVector3ShiftedWithAltitude(AltitudeLayer.LayingPawn), default(Rot4), PRFDefOf.PRFDrone);
+                PRFDefOf.PRFDrone.graphic.DrawFromDef(cell.ToVector3ShiftedWithAltitude(AltitudeLayer.LayingPawn),
+                    default, PRFDefOf.PRFDrone);
             }
         }
 
@@ -454,87 +256,72 @@ namespace ProjectRimFactory.Drones
 
         public abstract Job TryGiveJob(Pawn pawn);
 
+        private CompPowerTrader compPowerTrader;
 
-        protected CompPowerTrader compPowerTrader;
-
-        protected int additionJobSearchTickDelay = 0;
+        private int additionJobSearchTickDelay;
 
 
-        public override void Tick()
+        protected override void Tick()
         {
             //Base Tick
             base.Tick();
-            //Return if not Spawnd
-            if (!this.Spawned) return;
+            //Return if not Spawned
+            if (!Spawned) return;
 
-
-            //Should not draw much performence...
-            //To enhance performence we could add "this.IsHashIntervalTick(60)"
-            if (spawnedDrones.Count > 0 && compPowerTrader?.PowerOn == false)
+            
+            if (SpawnedDrones.Count > 0 && compPowerTrader?.PowerOn == false)
             {
-                for (int i = spawnedDrones.Count - 1; i >= 0; i--)
+                for (var i = SpawnedDrones.Count - 1; i >= 0; i--)
                 {
-                    spawnedDrones[i].jobs.StartJob(new Job(PRFDefOf.PRFDrone_ReturnToStation, this), JobCondition.InterruptForced);
+                    SpawnedDrones[i].jobs.StartJob(new Job(PRFDefOf.PRFDrone_ReturnToStation, this), JobCondition.InterruptForced);
                 }
-                //return as there is nothing to do if its off....
+                //return as there is nothing to do if it's off....
                 return;
             }
-
-
-            //Update the Allowed Area Range on Power Change
+            
+            //Update the Allowed Area
             if (this.IsHashIntervalTick(60))
             {
                 //Update the Range
-                Update_droneAllowedArea_forDrones(droneAllowedArea);
-
-                //TODO add cell calc
-                cashed_GetCoverageCells = StationRangecells.ToList();
+                Update_droneAllowedArea_forDrones(DroneAllowedArea);
+                
+                CashedGetCoverageCells = StationRangeCells.ToList();
             }
 
-            //Search for Job
-            if (this.IsHashIntervalTick(60 + additionJobSearchTickDelay) && DronesLeft > 0 && !lockdown && compPowerTrader?.PowerOn != false)
+            //Check if we should search for a Job
+            if (!this.IsHashIntervalTick(60 + additionJobSearchTickDelay) || DronesLeft <= 0 || lockdown || compPowerTrader?.PowerOn == false) return;
+            
+            var drone = MakeDrone();
+            GenSpawn.Spawn(drone, Position, Map);
+
+            var job = TryGiveJob(drone);
+
+            if (job != null)
             {
-                //The issue appears to be 100% with TryGiveJob
-                Pawn_Drone drone = MakeDrone();
-                GenSpawn.Spawn(drone, Position, Map);
-
-                Job job = TryGiveJob(drone);
-
-                if (job != null)
-                {
-                    additionJobSearchTickDelay = 0; //Reset to 0 - found a job -> may find more
-                    job.playerForced = true; // Why is that here? (included since the very beginning)
-                    //MakeDrone takes about 1ms
+                additionJobSearchTickDelay = 0; //Reset to 0 - found a job -> may find more
+                job.playerForced = true; // Allow higher Danger for the Job
+                //MakeDrone takes about 1ms
                     
-                    drone.jobs.StartJob(job);
-                }
-                else
+                drone.jobs.StartJob(job);
+            }
+            else
+            {
+                drone.Destroy();
+                Notify_DroneGained();
+                //Add delay (limit to 300) effective limit is 510
+                if (additionJobSearchTickDelay < 300)
                 {
-                    drone.Destroy();
-                    Notify_DroneGained();
-                    //Experimental Delay
-                    //Add delay (limit to 300) i am well aware that this can be higher that 300 with the current code
-                    if (additionJobSearchTickDelay < 300)
-                    {
-                        //Exponential delay
-                        additionJobSearchTickDelay = (additionJobSearchTickDelay + 1) * 2;
-                    }
+                    //Exponential delay
+                    additionJobSearchTickDelay = (additionJobSearchTickDelay + 1) * 2;
                 }
             }
-
-
-
-
         }
-        //It appers as if TickLong & TickRare are not getting called here
 
         public void Notify_DroneMayBeLost(Pawn_Drone drone)
         {
-            if (spawnedDrones.Contains(drone))
-            {
-                spawnedDrones.Remove(drone);
-                Notify_DroneLost();
-            }
+            if (!SpawnedDrones.Contains(drone)) return;
+            SpawnedDrones.Remove(drone);
+            Notify_DroneLost();
         }
 
         //Handel the Range UI
@@ -542,17 +329,17 @@ namespace ProjectRimFactory.Drones
         {
             base.DrawExtraSelectionOverlays();
             //Dont Draw if infinite
-            if (def.GetModExtension<DefModExtension_DroneStation>().SquareJobRadius > 0)
+            if (DefModExtensionDroneStation.SquareJobRadius > 0)
             {
-                GenDraw.DrawFieldEdges(cashed_GetCoverageCells);
+                GenDraw.DrawFieldEdges(CashedGetCoverageCells);
             }
 
         }
 
         public override string GetInspectString()
         {
-            StringBuilder builder = new StringBuilder();
-            string str = base.GetInspectString();
+            var builder = new StringBuilder();
+            var str = base.GetInspectString();
             if (!string.IsNullOrEmpty(str))
             {
                 builder.AppendLine(str);
@@ -562,11 +349,11 @@ namespace ProjectRimFactory.Drones
         }
 
 
-        private static List<Hediff> droneDiffs = null;
+        private static List<Hediff> droneDiffs;
 
-        public Pawn_Drone MakeDrone()
+        private Pawn_Drone MakeDrone()
         {
-            Pawn_Drone drone = (Pawn_Drone)ThingMaker.MakeThing(PRFDefOf.PRFDroneKind.race);
+            var drone = (Pawn_Drone)ThingMaker.MakeThing(PRFDefOf.PRFDroneKind.race);
             drone.kindDef = PRFDefOf.PRFDroneKind;
             drone.SetFactionDirect(Faction);
             PawnComponentsUtility.CreateInitialComponents(drone);
@@ -577,7 +364,7 @@ namespace ProjectRimFactory.Drones
             if (droneDiffs == null)
             {
                 PawnTechHediffsGenerator.GenerateTechHediffsFor(drone);
-                droneDiffs = new List<Hediff>(drone.health.hediffSet.hediffs);
+                droneDiffs = [..drone.health.hediffSet.hediffs];
             }
             else
             {
@@ -592,34 +379,23 @@ namespace ProjectRimFactory.Drones
             drone.ideo = new Pawn_IdeoTracker(drone);
             drone.ideo.SetIdeo(Faction.ideos.PrimaryIdeo);
 
-            drone.station = this;
-            spawnedDrones.Add(drone);
+            drone.BaseStation = this;
+            SpawnedDrones.Add(drone);
             return drone;
         }
 
         public override void ExposeData()
         {
             base.ExposeData();
-            Scribe_Collections.Look(ref spawnedDrones, "spawnedDrones", LookMode.Reference);
+            Scribe_Collections.Look(ref SpawnedDrones, "spawnedDrones", LookMode.Reference);
             Scribe_Values.Look(ref lockdown, "lockdown");
-            Scribe_References.Look(ref droneAllowedArea, "droneAllowedArea");
+            Scribe_References.Look(ref DroneAllowedArea, "droneAllowedArea");
             //WorkSettings
             Scribe_Collections.Look(ref WorkSettings, "WorkSettings");
-            if (WorkSettings == null) //Need for Compatibility with older saves
-            {
-                WorkSettings = new Dictionary<WorkTypeDef, bool>();
-            }
-            //init refuelableComp after a Load
-            if (refuelableComp == null)
-            {
-                refuelableComp = this.GetComp<CompRefuelable>();
-            }
-            if (StationRangecells_old == null)
-            {
-                StationRangecells_old = StationRangecells;
-            }
-
-
+            WorkSettings ??= new Dictionary<WorkTypeDef, bool>();
+            //init RefuelableComp after a Load
+            RefuelableComp ??= GetComp<CompRefuelable>();
+            stationRangeCellsOld ??= StationRangeCells;
         }
 
 
@@ -634,12 +410,10 @@ namespace ProjectRimFactory.Drones
                 toggleAction = () =>
                 {
                     lockdown = !lockdown;
-                    if (lockdown)
+                    if (!lockdown) return;
+                    foreach (var drone in SpawnedDrones.ToList())
                     {
-                        foreach (Pawn_Drone drone in spawnedDrones.ToList())
-                        {
-                            drone.jobs.StartJob(new Job(PRFDefOf.PRFDrone_ReturnToStation, this), JobCondition.InterruptForced);
-                        }
+                        drone.jobs.StartJob(new Job(PRFDefOf.PRFDrone_ReturnToStation, this), JobCondition.InterruptForced);
                     }
                 },
                 isActive = () => lockdown,
@@ -651,18 +425,18 @@ namespace ProjectRimFactory.Drones
                 defaultDesc = "PRFDroneStationLockdownAllDesc".Translate(),
                 action = () =>
                 {
-                    List<Building_DroneStation> buildings = Map.listerThings.AllThings.OfType<Building_DroneStation>().ToList();
-                    for (int i = 0; i < buildings.Count; i++)
+                    var buildings = Map.listerThings.AllThings.OfType<Building_DroneStation>().ToList();
+                    for (var i = 0; i < buildings.Count; i++)
                     {
                         buildings[i].lockdown = true;
-                        foreach (Pawn_Drone drone in buildings[i].spawnedDrones.ToList())
+                        foreach (var drone in buildings[i].SpawnedDrones.ToList())
                         {
                             drone.jobs.StartJob(new Job(PRFDefOf.PRFDrone_ReturnToStation, buildings[i]), JobCondition.InterruptForced);
                         }
                     }
 
                 },
-                icon = ContentFinder<Texture2D>.Get("PRFUi/deactivate", true)
+                icon = ContentFinder<Texture2D>.Get("PRFUi/deactivate")
             };
             yield return new Command_Action()
             {
@@ -670,29 +444,25 @@ namespace ProjectRimFactory.Drones
                 defaultDesc = "PRFDroneStationLiftLockdownAllDesc".Translate(),
                 action = () =>
                 {
-                    List<Building_DroneStation> buildings = Map.listerThings.AllThings.OfType<Building_DroneStation>().ToList();
-                    for (int i = 0; i < buildings.Count; i++)
+                    var buildings = Map.listerThings.AllThings.OfType<Building_DroneStation>().ToList();
+                    for (var i = 0; i < buildings.Count; i++)
                     {
                         buildings[i].lockdown = false;
                     }
 
                 },
-                icon = ContentFinder<Texture2D>.Get("PRFUi/activate", true)
+                icon = ContentFinder<Texture2D>.Get("PRFUi/activate")
             };
             if (DroneRange == 0)
             {
-                /*
-                "Verse.Designator"
-                Holds example of how i want this Gizmo Implemented
-                */
                 yield return new DroneAreaSelector()
                 {
                     icon = ContentFinder<Texture2D>.Get("UI/Designators/AreaAllowedExpand"),
-                    defaultLabel = droneAreaSelectorLable,
-                    selectAction = (a) =>
+                    defaultLabel = droneAreaSelectorLabel,
+                    SelectAction = (a) =>
                     {
                         Update_droneAllowedArea_forDrones(a);
-                        update_droneAreaSelectorLable(a);
+                        update_droneAreaSelectorLabel(a);
 
                     }
                 };
@@ -707,24 +477,14 @@ namespace ProjectRimFactory.Drones
                     defaultDesc = "Respawns all Drones",
                     action = () =>
                     {
-                        for (int i = spawnedDrones.Count - 1; i >= 0; i--)
+                        for (var i = SpawnedDrones.Count - 1; i >= 0; i--)
                         {
-                            spawnedDrones[i].Destroy();
+                            SpawnedDrones[i].Destroy();
                             Notify_DroneGained();
                         }
-
                     },
                 };
             }
-
-
         }
-
-
-
-
-
-
-
     }
 }

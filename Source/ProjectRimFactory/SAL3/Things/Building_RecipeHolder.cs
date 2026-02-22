@@ -1,72 +1,85 @@
-﻿using ProjectRimFactory.SAL3.Things.Assemblers;
-using RimWorld;
+﻿using RimWorld;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using ProjectRimFactory.Common;
 using Verse;
 
 namespace ProjectRimFactory.SAL3.Things
 {
+    // ReSharper disable once ClassNeverInstantiated.Global
     public class Building_RecipeHolder : Building, IRecipeHolderInterface
     {
-        static readonly IntVec3 Up = new IntVec3(0, 0, 1);
         //================================ Fields
-        protected RecipeDef workingRecipe;
-        protected float workAmount;
-        public List<RecipeDef> recipes = new List<RecipeDef>();
+        private RecipeDef workingRecipe;
+        private float workAmount;
+        public List<RecipeDef> Recipes = [];
+        private readonly List<IRecipeSubscriber> recipeSubscribers = [];
+        
         //================================ Misc
-        public IEnumerable<Building_WorkTable> Tables => from IntVec3 cell in this.GetComp<CompRecipeImportRange>()?.RangeCells() ?? GenAdj.CellsAdjacent8Way(this)
-                                                         where cell.InBounds(this.Map)
+
+        public void RegisterRecipeSubscriber(IRecipeSubscriber subscriber)
+        {
+            recipeSubscribers.Add(subscriber);
+            subscriber.RecipesChanged(this);
+        }
+        public void DeregisterRecipeSubscriber(IRecipeSubscriber subscriber)
+        {
+            recipeSubscribers.Remove(subscriber);
+            subscriber.RecipesChanged(this);
+        }
+        
+        
+        
+        private IEnumerable<Building_WorkTable> Tables => from IntVec3 cell in GetComp<CompRecipeImportRange>()?.RangeCells() ?? GenAdj.CellsAdjacent8Way(this)
+                                                         where cell.InBounds(Map)
                                                          from Thing t in cell.GetThingList(Map)
                                                          let building = t as Building_WorkTable
                                                          where building != null
                                                          select building;
 
-        private List<RecipeDef> quered_recipes;
+        private List<RecipeDef> queuedRecipes;
+        
+                                
 
-        public List<RecipeDef> Quered_Recipes
+        public List<RecipeDef> QueuedRecipes
         {
-            get
-            {
-
-                return quered_recipes;
-            }
-            set
-            {
-                quered_recipes = value;
-            }
+            get => queuedRecipes;
+            set => queuedRecipes = value;
         }
 
-        public List<RecipeDef> Learnable_Recipes => GetAllProvidedRecipeDefs().ToList();
+        public List<RecipeDef> LearnableRecipes => GetAllProvidedRecipeDefs().ToList();
 
-        public float Progress_Learning => workAmount;
+        public float ProgressLearning => workAmount;
 
-        RecipeDef IRecipeHolderInterface.Recipe_Learning { get => workingRecipe; set => workingRecipe = value; }
-        List<RecipeDef> IRecipeHolderInterface.Saved_Recipes { get => recipes; set => recipes = value; }
+        RecipeDef IRecipeHolderInterface.RecipeLearning { get => workingRecipe; set => workingRecipe = value; }
+        List<RecipeDef> IRecipeHolderInterface.SavedRecipes { get => Recipes; set => Recipes = value; }
 
         // Used To detect if this is of type Bill_Mech
         // This is the same Logic as in RimWorld.BillUtility:MakeNewBill()
-        private bool IsBill_Mech(RecipeDef def)
+        private static bool IsBill_Mech(RecipeDef recipeDef)
         {
-            return def.mechResurrection || def.gestationCycles > 0;
+            return recipeDef.mechResurrection || recipeDef.gestationCycles > 0;
         }
 
-        public virtual IEnumerable<RecipeDef> GetAllProvidedRecipeDefs()
+        protected virtual IEnumerable<RecipeDef> GetAllProvidedRecipeDefs()
         {
-            HashSet<RecipeDef> result = new HashSet<RecipeDef>();
-            foreach (Building_WorkTable table in Tables)
+            HashSet<RecipeDef> result = [];
+            foreach (var table in Tables)
             {
-                foreach (RecipeDef recipe in table.def.AllRecipes)
+                foreach (var recipe in table.def.AllRecipes)
                 {
-                    if (recipe.AvailableNow && !recipes.Contains(recipe) && !result.Contains(recipe) && !IsBill_Mech(recipe))
+                    if (recipe.AvailableNow && !Recipes.Contains(recipe) && !result.Contains(recipe) && !IsBill_Mech(recipe))
+                    {
                         result.Add(recipe);
+                    }
                 }
             }
             return result;
         }
         protected virtual float GetLearnRecipeWorkAmount(RecipeDef recipe)
         {
-            return recipe.WorkAmountTotal(ThingDefOf.Steel);
+            return recipe.WorkAmountForStuff(ThingDefOf.Steel);
         }
 
         //================================ Overrides
@@ -86,25 +99,10 @@ namespace ProjectRimFactory.SAL3.Things
             }
         }
 
-        List<FloatMenuOption> GetDebugOptions()
+        private List<FloatMenuOption> GetDebugOptions()
         {
-            List<FloatMenuOption> list = new List<FloatMenuOption>
-            {
-                new FloatMenuOption("Insta-finish", () => workAmount = 0f)
-            };
+            List<FloatMenuOption> list = [new("Insta-finish", () => workAmount = 0f)];
             return list;
-        }
-
-        protected virtual IEnumerable<FloatMenuOption> GetPossibleOptions()
-        {
-            foreach (RecipeDef recipe in GetAllProvidedRecipeDefs())
-            {
-                yield return new FloatMenuOption(recipe.LabelCap, () =>
-                {
-                    workingRecipe = recipe;
-                    workAmount = GetLearnRecipeWorkAmount(recipe);
-                });
-            }
         }
 
         private void ResetProgress()
@@ -116,29 +114,18 @@ namespace ProjectRimFactory.SAL3.Things
         public override void DeSpawn(DestroyMode mode = DestroyMode.Vanish)
         {
             ResetProgress();
-            Map mapBefore = Map;
             // Do not remove ToList - It evaluates the enumerable
-            List<IntVec3> cells = GenAdj.CellsAdjacent8Way(this).ToList();
-            base.DeSpawn();
-            for (int i = 0; i < cells.Count; i++)
+            base.DeSpawn(mode);
+            
+            foreach (var subscriber in recipeSubscribers)
             {
-                List<Thing> things = mapBefore.thingGrid.ThingsListAt(cells[i]);
-                for (int j = things.Count - 1; j >= 0; j--)
-                {
-                    if (things[j] is Building_SmartAssembler)
-                    {
-                        (things[j] as Building_SmartAssembler).Notify_RecipeHolderRemoved();
-                        // break; // We can afford to be silly and check everything in this one cell.
-                        // despawning does not happen often, right?
-                        // maybe?
-                        break; // maybe not, who knows.
-                    }
-                }
+                subscriber.RecipeProviderRemoved(this);
             }
         }
 
-        public override void Tick()
+        protected override void Tick()
         {
+            if (!Spawned) return;
             if (this.IsHashIntervalTick(60) && GetComp<CompPowerTrader>()?.PowerOn != false)
             {
 
@@ -148,18 +135,20 @@ namespace ProjectRimFactory.SAL3.Things
                     if (workAmount < 0)
                     {
                         // Encode recipe
-                        recipes.Add(workingRecipe);
+                        Recipes.Add(workingRecipe);
+                        foreach (var recipeSubscriber in recipeSubscribers)
+                        {
+                            recipeSubscriber.RecipesChanged(this);
+                        }
                         ResetProgress();
                     }
                 }
-                else if (Quered_Recipes.Count >= 1)
+                else if (QueuedRecipes.Count >= 1)
                 {
-                    workingRecipe = Quered_Recipes[0];
+                    workingRecipe = QueuedRecipes[0];
                     workAmount = GetLearnRecipeWorkAmount(workingRecipe);
-                    Quered_Recipes.RemoveAt(0);
+                    QueuedRecipes.RemoveAt(0);
                 }
-
-
             }
             base.Tick();
         }
@@ -168,17 +157,17 @@ namespace ProjectRimFactory.SAL3.Things
         {
             base.ExposeData();
             Scribe_Defs.Look(ref workingRecipe, "workingRecipe");
-            Scribe_Collections.Look(ref recipes, "recipes", LookMode.Def);
+            Scribe_Collections.Look(ref Recipes, "recipes", LookMode.Def);
             Scribe_Values.Look(ref workAmount, "workAmount");
 
-            Scribe_Collections.Look(ref quered_recipes, "quered_recipes");
+            Scribe_Collections.Look(ref queuedRecipes, "quered_recipes");
 
-            quered_recipes ??= new List<RecipeDef>();
+            queuedRecipes ??= [];
         }
         public override string GetInspectString()
         {
-            StringBuilder stringBuilder = new StringBuilder();
-            string baseInspectString = base.GetInspectString();
+            var stringBuilder = new StringBuilder();
+            var baseInspectString = base.GetInspectString();
             if (baseInspectString.Length > 0)
             {
                 stringBuilder.AppendLine(baseInspectString);
@@ -187,23 +176,24 @@ namespace ProjectRimFactory.SAL3.Things
             {
                 stringBuilder.AppendLine("SALInspect_RecipeReport".Translate(workingRecipe.label, workAmount.ToStringWorkAmount()));
             }
-            stringBuilder.AppendLine("SAL3_StoredRecipes".Translate(string.Join(", ", recipes.Select(r => r.label).ToArray())));
+            stringBuilder.AppendLine("SAL3_StoredRecipes".Translate(string.Join(", ", Recipes.Select(r => r.label).ToArray())));
             return stringBuilder.ToString().TrimEndNewlines();
         }
 
         public override void PostMake()
         {
             base.PostMake();
-            quered_recipes ??= new List<RecipeDef>();
+            queuedRecipes ??= [];
         }
 
         public override void SpawnSetup(Map map, bool respawningAfterLoad)
         {
             base.SpawnSetup(map, respawningAfterLoad);
-
-            // Remove existing Mech Bills as the don't work
-            // This code can be removed in the future once we are reasonably certain that this was executed on each affected Save
-            recipes.RemoveAll(r => IsBill_Mech(r));
+            // Check for Null Ref issues in Saved or Queued recipes
+            // (That can happen if Mods are Removed mid-Save or some mod makes a breaking change)
+            Recipes.RemoveAll(recipeDef => recipeDef is null);
+            queuedRecipes.RemoveAll(recipeDef => recipeDef is null);
+            Map.GetComponent<PRFMapComponent>().NotifyRecipeSubscriberOfProvider(Position, this);
         }
     }
 }

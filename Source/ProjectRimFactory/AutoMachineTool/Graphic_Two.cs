@@ -18,7 +18,7 @@ namespace ProjectRimFactory.AutoMachineTool
 
         public override Graphic GetColoredVersion(Shader newShader, Color newColor, Color newColorTwo)
         {
-            return this.NS;
+            return NS;
         }
 
         public override void Init(GraphicRequest req)
@@ -30,11 +30,11 @@ namespace ProjectRimFactory.AutoMachineTool
         public virtual void ExtraInit(GraphicRequest req, GraphicExtraData extraData)
         {
             // All basically pointless:
-            this.data = req.graphicData;
-            this.color = req.color;
-            this.colorTwo = req.colorTwo;
-            this.drawSize = req.drawSize;
-            this.path = extraData?.texPath ?? req.path;
+            data = req.graphicData;
+            color = req.color;
+            colorTwo = req.colorTwo;
+            drawSize = req.drawSize;
+            path = extraData?.texPath ?? req.path;
             // What we want is two duplicate graphics with slightly different paths
             EW = MakeSubgraphic(req, extraData, "_East");
             NS = MakeSubgraphic(req, extraData, "_North");
@@ -59,13 +59,8 @@ namespace ProjectRimFactory.AutoMachineTool
             }
             return tmpG;
         }
-        public override Material MatSingle
-        {
-            get
-            {
-                return NS.MatSingle;
-            }
-        }
+        public override Material MatSingle => NS.MatSingle;
+
         public override Material MatSingleFor(Thing thing)
         {
             if (thing.Rotation == Rot4.North || thing.Rotation == Rot4.South)

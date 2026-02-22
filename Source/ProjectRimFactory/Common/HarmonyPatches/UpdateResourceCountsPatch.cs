@@ -18,18 +18,22 @@ namespace ProjectRimFactory.Common.HarmonyPatches
     class Patch_UpdateResourceCounts_AssemblerQueue
     {
 
+        // ReSharper disable once InconsistentNaming
+        // ReSharper disable once UnusedParameter.Local
+        // ReSharper disable once UnusedMember.Local
         static void Postfix(ResourceCounter __instance, Dictionary<ThingDef, int> ___countedAmounts, Map ___map)
         {
-            int i = 0;
-            PRFGameComponent gamecomp = Current.Game.GetComponent<PRFGameComponent>();
-            for (i = 0; i < gamecomp.AssemblerQueue.Count; i++)
+            var gameComponent = Current.Game.GetComponent<PRFGameComponent>();
+            for (var i = 0; i < gameComponent.AssemblerQueue.Count; i++)
             {
+                var currentQueue = gameComponent.AssemblerQueue[i];
+                
                 //Don't count Recorces of other maps
-                if (gamecomp.AssemblerQueue[i].Map != ___map) continue;
-
-                foreach (Thing heldThing in gamecomp.AssemblerQueue[i].GetThingQueue())
+                if (currentQueue.Map != ___map) continue;
+                var thingQueue = currentQueue.GetThingQueue();
+                foreach (var heldThing in thingQueue)
                 {
-                    Thing innerIfMinified = heldThing.GetInnerIfMinified();
+                    var innerIfMinified = heldThing.GetInnerIfMinified();
                     //Added Should Count Checks
                     //EverStorable is form HeldThings
                     //Fresh Check is from ShouldCount (maybe we can hit that via harmony/reflection somhow)
@@ -41,7 +45,6 @@ namespace ProjectRimFactory.Common.HarmonyPatches
                             ___countedAmounts[innerIfMinified.def] += innerIfMinified.stackCount;
                         }
                     }
-
                 }
             }
         }

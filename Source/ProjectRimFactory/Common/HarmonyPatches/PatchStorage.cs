@@ -1,8 +1,5 @@
-﻿using ProjectRimFactory.Storage;
-using RimWorld;
-using System;
+﻿using RimWorld;
 using System.Collections.Generic;
-using System.Linq;
 using UnityEngine;
 using Verse;
 
@@ -10,31 +7,33 @@ namespace ProjectRimFactory.Common.HarmonyPatches
 {
     class Patch_ForbidUtility_IsForbidden
     {
+        // ReSharper disable once UnusedMember.Local
+        // ReSharper disable once UnusedParameter.Local
         static bool Prefix(Thing t, Pawn pawn, out bool __result)
         {
             __result = true;
-            if (t != null)
+
+            Map thingmap = t?.Map;
+            if (thingmap != null && t.def.category == ThingCategory.Item)
             {
-                Map thingmap = t.Map;
-                if (thingmap != null && t.def.category == ThingCategory.Item)
+                if (PatchStorageUtil.GetPRFMapComponent(thingmap)?.ShouldForbidPawnOutputAtPos(t.Position) ?? false)
                 {
-                    if (PatchStorageUtil.GetPRFMapComponent(thingmap)?.ShouldForbidPawnOutputAtPos(t.Position) ?? false)
-                    {
-                        return false;
-                    }
+                    return false;
                 }
             }
             return true;
         }
     }
 
+    // TODO Check if we still need that in 1.5
     class Patch_Building_Storage_Accepts
     {
+        // ReSharper disable once UnusedMember.Local
         static bool Prefix(Building_Storage __instance, Thing t, out bool __result)
         {
             __result = false;
             //Check if pawn input is forbidden
-            if ((__instance as IForbidPawnInputItem)?.ForbidPawnInput ?? false)
+            if (!PatchStorageUtil.SkippAcceptsPatch && ((__instance as IForbidPawnInputItem)?.ForbidPawnInput ?? false))
             {
                 //#699 #678
                 //This check is needed to support the use of the Limit function for the IO Ports
@@ -47,13 +46,42 @@ namespace ProjectRimFactory.Common.HarmonyPatches
         }
     }
 
-    class Patch_FloatMenuMakerMap_ChoicesAtFor
+    // 1.5 Stuff
+    class Patch_StorageSettings_AllowedToAccept
     {
-        static bool Prefix(Vector3 clickPos, Pawn pawn, out List<FloatMenuOption> __result)
+        // ReSharper disable once UnusedMember.Local
+        static bool Prefix(IStoreSettingsParent ___owner, Thing t, out bool __result)
         {
-            if (pawn.Map.GetComponent<PRFMapComponent>().iHideRightMenus.Contains(clickPos.ToIntVec3()))
+            __result = false;
+            if (___owner is Building_Storage storage)
             {
-                __result = new List<FloatMenuOption>();
+                //Check if pawn input is forbidden
+                if (!PatchStorageUtil.SkippAcceptsPatch && ((storage as IForbidPawnInputItem)?.ForbidPawnInput ?? false))
+                {
+                    //#699 #678
+                    //This check is needed to support the use of the Limit function for the IO Ports
+                    if (storage.Position != t.Position)
+                    {
+                        return false;
+                    }
+                }
+            }
+
+            
+            return true;
+        }
+    }
+
+    class Patch_FloatMenuMakerMap_GetOptions
+    {
+        // ReSharper disable once UnusedMember.Local
+        // ReSharper disable once UnusedParameter.Local
+        static bool Prefix(List<Pawn> selectedPawns, Vector3 clickPos, out List<FloatMenuOption> __result, out FloatMenuContext context)
+        {
+            context = null;
+            if (Find.CurrentMap.GetComponent<PRFMapComponent>().iHideRightMenus.Contains(clickPos.ToIntVec3()))
+            {
+                __result = [];
                 return false;
             }
             __result = null;
@@ -63,6 +91,7 @@ namespace ProjectRimFactory.Common.HarmonyPatches
 
     class Patch_Thing_DrawGUIOverlay
     {
+        // ReSharper disable once UnusedMember.Local
         static bool Prefix(Thing __instance)
         {
             if (__instance.def.category == ThingCategory.Item)
@@ -78,6 +107,7 @@ namespace ProjectRimFactory.Common.HarmonyPatches
 
     class Patch_ThingWithComps_DrawGUIOverlay
     {
+        // ReSharper disable once UnusedMember.Local
         static bool Prefix(Thing __instance)
         {
             if (__instance.def.category == ThingCategory.Item)
@@ -93,6 +123,8 @@ namespace ProjectRimFactory.Common.HarmonyPatches
 
     class Patch_Thing_Print
     {
+        // ReSharper disable once UnusedParameter.Local
+        // ReSharper disable once UnusedMember.Local
         static bool Prefix(Thing __instance, SectionLayer layer)
         {
             if (__instance.def.category == ThingCategory.Item)
@@ -108,6 +140,8 @@ namespace ProjectRimFactory.Common.HarmonyPatches
 
     class Patch_MinifiedThing_Print
     {
+        // ReSharper disable once UnusedParameter.Local
+        // ReSharper disable once UnusedMember.Local
         static bool Prefix(Thing __instance, SectionLayer layer)
         {
             if (__instance.def.category == ThingCategory.Item)
@@ -123,41 +157,30 @@ namespace ProjectRimFactory.Common.HarmonyPatches
 
     static class PatchStorageUtil
     {
-        private static Dictionary<Tuple<Map, IntVec3, Type>, object> cache = new Dictionary<Tuple<Map, IntVec3, Type>, object>();
-        private static int lastTick = 0;
-        private static Dictionary<Map, PRFMapComponent> mapComps = new Dictionary<Map, PRFMapComponent>();
-
+        static PatchStorageUtil()
+        {
+            MapComps = new Dictionary<Map, PRFMapComponent>();
+        }
+        
+        private static readonly Dictionary<Map, PRFMapComponent> MapComps;
+        public static bool SkippAcceptsPatch = false;
+        
+        
+        // ReSharper disable once InconsistentNaming
         public static PRFMapComponent GetPRFMapComponent(Map map)
         {
-            PRFMapComponent outval = null;
-            if (map is not null && !mapComps.TryGetValue(map, out outval))
+            PRFMapComponent outVal = null;
+            if (map is not null && !MapComps.TryGetValue(map, out outVal))
             {
-                outval = map.GetComponent<PRFMapComponent>();
-                mapComps.Add(map, outval);
+                outVal = map.GetComponent<PRFMapComponent>();
+                MapComps.Add(map, outVal);
             }
-            return outval;
+            return outVal;
         }
 
         public static T Get<T>(Map map, IntVec3 pos) where T : class
         {
             return pos.IsValid ? pos.GetFirst<T>(map) : null;
-        }
-
-        public static T GetWithTickCache<T>(Map map, IntVec3 pos) where T : class
-        {
-            if (Find.TickManager.TicksGame != lastTick)
-            {
-                cache.Clear();
-                lastTick = Find.TickManager.TicksGame;
-            }
-            var key = new Tuple<Map, IntVec3, Type>(map, pos, typeof(T));
-            if (!cache.TryGetValue(key, out object val))
-            {
-                val = Get<T>(map, pos);
-                cache.Add(key, val);
-            }
-
-            return (T)val;
         }
     }
 

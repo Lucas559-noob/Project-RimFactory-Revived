@@ -25,6 +25,7 @@ namespace ProjectRimFactory.Drones
                     workDisables = WorkTags.Social,
                     slot = BackstorySlot.Childhood,
                     baseDesc = "NoneBrackets".Translate(),
+                    description = "NoneBrackets".Translate(),
                     modContentPack = LoadedModManager.GetMod<ProjectRimFactory_ModComponent>().Content
                 };
 
@@ -36,21 +37,22 @@ namespace ProjectRimFactory.Drones
                     workDisables = WorkTags.Social,
                     slot = BackstorySlot.Adulthood,
                     baseDesc = "NoneBrackets".Translate(),
+                    description = "NoneBrackets".Translate(),
                     modContentPack = LoadedModManager.GetMod<ProjectRimFactory_ModComponent>().Content
                 };
 
-                var BackstoryDefs = DefDatabase<BackstoryDef>.AllDefsListForReading;
-                TryAddBacksoryDef(BackstoryDefs, childhood);
-                TryAddBacksoryDef(BackstoryDefs, adulthood);
+                var backstoryDefs = DefDatabase<BackstoryDef>.AllDefsListForReading;
+                TryAddBackstoryDef(backstoryDefs, childhood);
+                TryAddBackstoryDef(backstoryDefs, adulthood);
             });
         }
 
-        private static void TryAddBacksoryDef(List<BackstoryDef> BackstoryDefs, BackstoryDef backstoryDef)
+        private static void TryAddBackstoryDef(List<BackstoryDef> backstoryDefs, BackstoryDef backstoryDef)
         {
             //this check is required to avoid an issue with "BetterLoading" as it calls "LongEventHandler.ExecuteWhenFinished" twice 
-            if (!BackstoryDefs.Contains(backstoryDef))
+            if (!backstoryDefs.Contains(backstoryDef))
             {
-                BackstoryDefs.Add(backstoryDef);
+                backstoryDefs.Add(backstoryDef);
             }
         }
     }

@@ -2,6 +2,8 @@
 using System;
 using System.Reflection;
 using Verse;
+// ReSharper disable InconsistentNaming
+// ReSharper disable UnassignedField.Global
 
 namespace ProjectRimFactory.Common
 {
@@ -10,11 +12,11 @@ namespace ProjectRimFactory.Common
     {
         static PRFDefOf()
         {
-            Type thisType = typeof(PRFDefOf);
-            FieldInfo[] fields = thisType.GetFields();
-            for (int i = 0; i < fields.Length; i++)
+            var thisType = typeof(PRFDefOf);
+            var fields = thisType.GetFields();
+            for (var i = 0; i < fields.Length; i++)
             {
-                object def = GenGeneric.InvokeStaticMethodOnGenericType(typeof(DefDatabase<>), fields[i].FieldType, "GetNamedSilentFail", fields[i].Name);
+                var def = GenGeneric.InvokeStaticMethodOnGenericType(typeof(DefDatabase<>), fields[i].FieldType, "GetNamedSilentFail", fields[i].Name);
                 if (def != null)
                 {
                     fields[i].SetValue(null, def);
@@ -46,12 +48,13 @@ namespace ProjectRimFactory.Common
         public static ThingDef PRF_DroneModule;
         public static ThingDef Column;
         public static ThingDef PRF_MiniDroneColumn;
+        public static ThingDef PRF_Recycler;
 
         public static BackstoryDef ChildSpy47;
         public static BackstoryDef ColonySettler53;
 
 
-        //Reserch Projeckts
+        //Research Projects
         public static ResearchProjectDef PRF_BasicDrones;
         public static ResearchProjectDef PRF_ImprovedDrones; //For Level 15
         public static ResearchProjectDef PRF_AdvancedDrones; //For Level 20

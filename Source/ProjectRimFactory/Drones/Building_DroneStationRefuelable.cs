@@ -11,44 +11,37 @@ namespace ProjectRimFactory.Drones
         {
             base.PostMake();
             //Load the initial Drone Count. This must not happen on each load
-            refuelableComp.Refuel(extension.GetDronesOnSpawn(refuelableComp));
-        }
-        public override int DronesLeft
-        {
-            get
-            {
-                return Mathf.RoundToInt(refuelableComp.Fuel) - spawnedDrones.Count;
-            }
+            RefuelableComp.Refuel(DefModExtensionDroneStation.GetDronesOnSpawn(RefuelableComp));
         }
 
-        Dictionary<string, int> IAdditionalPowerConsumption.AdditionalPowerConsumption => new Dictionary<string, int> { { "Drone Count", (int)(refuelableComp?.Fuel ?? 0) * 10 } };
+        protected override int DronesLeft => Mathf.RoundToInt(RefuelableComp.Fuel) - SpawnedDrones.Count;
 
-        public override void Notify_DroneLost()
+        Dictionary<string, int> IAdditionalPowerConsumption.AdditionalPowerConsumption => new() 
+            { { "Drone Count", (int)(RefuelableComp?.Fuel ?? 0) * 10 } };
+
+        protected override void Notify_DroneLost()
         {
-            refuelableComp.ConsumeFuel(1);
+            RefuelableComp.ConsumeFuel(1);
             RangePowerSupplyMachine?.RefreshPowerStatus();
         }
         public override void Notify_DroneGained()
         {
-            refuelableComp.Refuel(1);
+            RefuelableComp.Refuel(1);
             RangePowerSupplyMachine?.RefreshPowerStatus();
         }
+        
+        private int lastFuelCnt = 0;
 
-        private int last_fuel_cnt = 0;
-
-        public override void Tick()
+        protected override void Tick()
         {
             base.Tick();
+            if (!Spawned) return;
 
-            if (this.IsHashIntervalTick(60))
-            {
-                if (last_fuel_cnt != refuelableComp.Fuel)
-                {
-                    last_fuel_cnt = (int)refuelableComp.Fuel;
-                    RangePowerSupplyMachine?.RefreshPowerStatus();
-                }
-
-            }
+            if (!this.IsHashIntervalTick(60)) return;
+            // Cache Compare, no need to check for tolerances in this case
+            if (lastFuelCnt == RefuelableComp.Fuel) return;
+            lastFuelCnt = (int)RefuelableComp.Fuel;
+            RangePowerSupplyMachine?.RefreshPowerStatus();
         }
     }
 }

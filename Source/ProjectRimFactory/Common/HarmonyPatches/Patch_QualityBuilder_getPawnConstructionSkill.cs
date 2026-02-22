@@ -1,17 +1,12 @@
 ﻿using ProjectRimFactory.Drones;
 using RimWorld;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using Verse;
 
 namespace ProjectRimFactory.Common.HarmonyPatches
 {
-    internal class Patch_QualityBuilder_getPawnConstructionSkill
+    internal class Patch_QualityBuilder_GetPawnConstructionSkill
     {
-        static public bool Prefix(out int __result, Pawn pawn)
+        public static bool Prefix(out int __result, Pawn pawn)
         {
             __result = 0;
             if (pawn is Pawn_Drone)

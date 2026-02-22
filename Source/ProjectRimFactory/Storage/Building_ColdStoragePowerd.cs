@@ -8,26 +8,23 @@ using Verse;
 namespace ProjectRimFactory.Storage
 {
     [StaticConstructorOnStartup]
+    // ReSharper disable once UnusedType.Global
     public class Building_ColdStoragePowered : Building_ColdStorage
     {
-        private static Texture2D StoragePawnAccessSwitchIcon = ContentFinder<Texture2D>.Get("PRFUi/dsu", true);
+        private static readonly Texture2D StoragePawnAccessSwitchIcon = ContentFinder<Texture2D>.Get("PRFUi/dsu");
 
         //Initialized on spawn
-        private CompPowerTrader compPowerTrader = null;
+        private CompPowerTrader compPowerTrader;
 
         public override bool Powered => compPowerTrader?.PowerOn ?? false;
 
-        public override bool CanStoreMoreItems => (Powered) && this.Spawned &&
-            (ModExtension_Crate == null || StoredItemsCount < MaxNumberItemsInternal);
-        public override bool CanReceiveIO => base.CanReceiveIO && (compPowerTrader?.PowerOn ?? false) && this.Spawned;
-
-        public override bool ForbidPawnInput => this.ForbidPawnAccess || !this.pawnAccess || !this.CanStoreMoreItems;
-
-        public override bool ForbidPawnOutput => this.ForbidPawnAccess || !this.pawnAccess;
+        protected override bool CanStoreMoreItems => (Powered) && Spawned &&
+                                                     (ModExtensionCrate == null || StoredItemsCount < MaxNumberItemsInternal);
+        public override bool CanReceiveIO => base.CanReceiveIO && (compPowerTrader?.PowerOn ?? false) && Spawned;
 
         private bool pawnAccess = true;
 
-        public void UpdatePowerConsumption()
+        private void UpdatePowerConsumption()
         {
             compPowerTrader ??= GetComp<CompPowerTrader>();
             compPowerTrader.PowerOutput = -10 * StoredItemsCount;
@@ -40,19 +37,16 @@ namespace ProjectRimFactory.Storage
             compPowerTrader ??= GetComp<CompPowerTrader>();
         }
 
-        protected override void ReceiveCompSignal(string signal)
-        {
-            base.ReceiveCompSignal(signal);
-        }
-
-        public override void Tick()
+        protected override void Tick()
         {
             base.Tick();
+            if (!Spawned) return;
             if (this.IsHashIntervalTick(60))
             {
                 UpdatePowerConsumption();
             }
-            thingOwner.ThingOwnerTick();
+            //ThingOwnerTick
+            thingOwner.DoTick();
         }
 
         public override void PostMapInit()
@@ -76,13 +70,13 @@ namespace ProjectRimFactory.Storage
                 };
             }
 
-            if (!this.ForbidPawnAccess)
+            if (!ForbidPawnAccess)
             {
                 yield return new Command_Toggle()
                 {
                     defaultLabel = "PRFPawnAccessLabel".Translate(),
-                    isActive = () => this.pawnAccess,
-                    toggleAction = () => this.pawnAccess = !this.pawnAccess,
+                    isActive = () => pawnAccess,
+                    toggleAction = () => pawnAccess = !pawnAccess,
                     defaultDesc = "PRFPawnAccessDesc".Translate(),
                     icon = StoragePawnAccessSwitchIcon
                 };
@@ -95,7 +89,7 @@ namespace ProjectRimFactory.Storage
             {
                 if (def.GetModExtension<DefModExtension_Crate>()?.destroyContainsItems ?? false)
                 {
-                    this.StoredItems.Where(t => !t.Destroyed).ToList().ForEach(x => x.Destroy());
+                    StoredItems.Where(t => !t.Destroyed).ToList().ForEach(x => x.Destroy());
                 }
             }
             base.DeSpawn(mode);
@@ -107,16 +101,14 @@ namespace ProjectRimFactory.Storage
             yield return new FloatMenuOption("Log item count", () => Log.Message(StoredItemsCount.ToString()));
         }
 
-        public override string GetUIThingLabel()
+        protected override string GetUIThingLabel()
         {
             if ((def.GetModExtension<DefModExtension_Crate>()?.limit).HasValue)
             {
                 return "PRFCrateUIThingLabel".Translate(StoredItemsCount, def.GetModExtension<DefModExtension_Crate>().limit);
             }
-            else
-            {
-                return base.GetUIThingLabel();
-            }
+
+            return base.GetUIThingLabel();
         }
 
         public override string GetITabString(int itemsSelected)
@@ -125,34 +117,8 @@ namespace ProjectRimFactory.Storage
             {
                 return "PRFItemsTabLabel_Crate".Translate(StoredItemsCount, def.GetModExtension<DefModExtension_Crate>().limit, itemsSelected);
             }
-            else
-            {
-                return base.GetITabString(itemsSelected);
-            }
-        }
 
-        //This Exists as I don't know how to call .Any() with CodeInstruction
-        //Can be removed if the Transpiler is Updated to inclued that
-        public static bool AnyPowerd(Map map)
-        {
-            return AllPowered(map).Any();
-        }
-
-        public static IEnumerable<Building_MassStorageUnitPowered> AllPowered(Map map)
-        {
-            foreach (Building_MassStorageUnitPowered item in map.listerBuildings.AllBuildingsColonistOfClass<Building_MassStorageUnitPowered>())
-            {
-                CompPowerTrader comp = item.GetComp<CompPowerTrader>();
-                if (comp == null || comp.PowerOn)
-                {
-                    yield return item;
-                }
-            }
-        }
-
-        public override void SpawnSetup(Map map, bool respawningAfterLoad)
-        {
-            base.SpawnSetup(map, respawningAfterLoad);
+            return base.GetITabString(itemsSelected);
         }
 
         public override void PostMake()

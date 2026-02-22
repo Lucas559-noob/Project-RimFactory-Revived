@@ -1,12 +1,11 @@
 ﻿using RimWorld;
 using System.Collections.Generic;
-using System.Linq;
 using UnityEngine;
 using Verse;
 
 namespace ProjectRimFactory.Drones
 {
-    public class DefModExtension_DroneStation : DefModExtension, ProjectRimFactory.Common.IXMLThingDescription
+    public class DefModExtension_DroneStation : DefModExtension, Common.IXMLThingDescription
     {
         public int maxNumDrones;
         public bool displayDormantDrones;
@@ -16,19 +15,37 @@ namespace ProjectRimFactory.Drones
 
         private int spawnWithDrones = 0;
         private bool spawnWithFullDrones = false;
+        
+        public string[] GetSleepTimesString()
+        {
+            return Sleeptimes.Split(',');
+        }
 
+        public int[] GetSleepTimesInt()
+        {
+            var times = GetSleepTimesString();
+            var result = new List<int>();
+            for (var i = 0; i < times.Length; i++)
+            {
+                if (int.TryParse(times[i], out var number))
+                {
+                    result.Add(number);
+                }
+            }
+            return result.ToArray();
+        }
+        
         public string GetDescription(ThingDef def)
         {
-            string text = "";
-            CompProperties_Refuelable refule = (CompProperties_Refuelable)def.comps.Where(c => (c.compClass == typeof(CompRefuelable))).FirstOrDefault();
-            int maxdrones = maxNumDrones;
-            if (refule != null)
+            var propertiesRefuel = def.GetCompProperties<CompProperties_Refuelable>();
+            var maxDrones = maxNumDrones;
+            if (propertiesRefuel != null)
             {
-                maxdrones = (int)refule.fuelCapacity;
+                maxDrones = (int)propertiesRefuel.fuelCapacity;
             }
 
-            text += "PRF_UTD_DefModExtension_DroneStation_MaxDrones".Translate(maxdrones) + "\r\n";
-            text += "PRF_UTD_DefModExtension_DroneStation_IncludedDrones".Translate(GetDronesOnSpawn(null, refule)) + "\r\n";
+            var text = "PRF_UTD_DefModExtension_DroneStation_MaxDrones".Translate(maxDrones) + "\r\n";
+            text += "PRF_UTD_DefModExtension_DroneStation_IncludedDrones".Translate(GetDronesOnSpawn(null, propertiesRefuel)) + "\r\n";
             if (Sleeptimes != "")
             {
                 text += "PRF_UTD_DefModExtension_DroneStation_SleepTimes".Translate(Sleeptimes) + "\r\n";
@@ -53,11 +70,11 @@ namespace ProjectRimFactory.Drones
         }
 
         /// <summary>
-        /// Returns the number of Drones that should be availibale on Spawn.
+        /// Returns the number of Drones that should be available on Spawn.
         /// </summary>
-        public int GetDronesOnSpawn(CompRefuelable fuelcomp = null, CompProperties_Refuelable fuelcompp = null)
+        public int GetDronesOnSpawn(CompRefuelable fuelComp = null, CompProperties_Refuelable fuelCompProperties = null)
         {
-            CompProperties_Refuelable props = fuelcomp?.Props ?? fuelcompp;
+            var props = fuelComp?.Props ?? fuelCompProperties;
             if (spawnWithFullDrones)
             {
                 return (int)(props?.fuelCapacity ?? maxNumDrones);
